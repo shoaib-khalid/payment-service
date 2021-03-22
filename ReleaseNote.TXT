@@ -1,0 +1,6 @@
+Version v.1.0-FINAL
+--------------------------------
+Date:22-March-2021
+Developer:Taufik
+
+Update to version v.1.0-FINAL afer internal demo on 19-March-2021
