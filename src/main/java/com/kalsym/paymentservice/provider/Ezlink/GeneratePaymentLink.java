@@ -36,8 +36,9 @@ public class GeneratePaymentLink extends SyncDispatcher {
     private String logprefix;
     private String location="EzlinkGeneratePaymentLink";
     private final String systemTransactionId;
-    
-    public GeneratePaymentLink(CountDownLatch latch, HashMap config, PaymentRequest order, String systemTransactionId) {
+    private final int providerId;
+
+    public GeneratePaymentLink(CountDownLatch latch, HashMap config, PaymentRequest order, String systemTransactionId, Integer providerId) {
         super(latch);
         logprefix = systemTransactionId;
         this.systemTransactionId = systemTransactionId;
@@ -52,6 +53,7 @@ public class GeneratePaymentLink extends SyncDispatcher {
         this.order = order;
         this.sslVersion = (String) config.get("ssl_version");   
         this.generatelink_KalsymKey = (String) config.get("generatelink_KalsymKey");
+        this.providerId = providerId;
     }
 
     @Override
@@ -123,7 +125,8 @@ public class GeneratePaymentLink extends SyncDispatcher {
                 orderCreated.setSpOrderId(invoiceId);
                 orderCreated.setSpErrorCode(responseCode);
                 orderCreated.setCreatedDate(DateTimeUtil.currentTimestamp());
-                submitOrderResult.orderCreated=orderCreated;            
+                submitOrderResult.orderCreated=orderCreated;
+                submitOrderResult.providerId= this.providerId;
                 submitOrderResult.isSuccess=true;
                 submitOrderResult.paymentLink=link;
             } else {

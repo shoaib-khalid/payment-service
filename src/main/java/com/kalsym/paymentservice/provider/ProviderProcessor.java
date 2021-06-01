@@ -93,7 +93,7 @@ public class ProviderProcessor {
                 LogUtil.info(logprefix, location, "Constructors:"+cons[0].toString(), "");
                 try {       
                         if (functionName.equalsIgnoreCase("MakePayment")) {
-                            reqFactoryObj = (DispatchRequest) cons[0].newInstance(latch, providerConfig, order, this.sysTransactionId);                        
+                            reqFactoryObj = (DispatchRequest) cons[0].newInstance(latch, providerConfig, order, this.sysTransactionId,provider.getId());
                         } else if (functionName.equalsIgnoreCase("SpCallback")) {
                             reqFactoryObj = (DispatchRequest) cons[0].newInstance(latch, providerConfig, this.requestBody, this.sysTransactionId);                        
                         }

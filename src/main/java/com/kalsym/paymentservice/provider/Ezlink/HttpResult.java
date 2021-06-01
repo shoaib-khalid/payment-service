@@ -10,7 +10,7 @@ package com.kalsym.paymentservice.provider.Ezlink;
  * @author user
  */
 public class HttpResult {
-    int resultCode;
-    int httpResponseCode;
-    String responseString;
+    public int resultCode;
+    public String responseString;
+    public int httpResponseCode;
 }

@@ -71,7 +71,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .cors().and().csrf().disable();;
-        httpSecurity.addFilterBefore(sessionRequestFilter, UsernamePasswordAuthenticationFilter.class);
+//        httpSecurity.addFilterBefore(sessionRequestFilter, UsernamePasswordAuthenticationFilter.class);
     }
 
     @Bean

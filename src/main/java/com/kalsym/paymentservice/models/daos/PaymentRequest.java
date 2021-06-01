@@ -20,4 +20,5 @@ public class PaymentRequest {
    String productCode;
    Double paymentAmount;
    String systemTransactionId;
+   String email;
 }

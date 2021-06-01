@@ -73,6 +73,7 @@ public class PaymentsController {
         String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
         HttpReponse response = new HttpReponse(request.getRequestURI());
+        System.out.println("PAY AMOUNT : "+ paymentRequest.getPaymentAmount());
 
         LogUtil.info(logprefix, location, "", "");
         
@@ -143,7 +144,7 @@ public class PaymentsController {
     }*/
     
     
-    @PostMapping(path = {"/callback"}, name = "payments-sp-callback", consumes = "application/x-www-form-urlencoded")
+    @PostMapping(path = {"/callback"}, name = "payments-sp-callback")
     public ResponseEntity<HttpReponse> spCallback(HttpServletRequest request,
              @RequestParam Map<String, String> requestBody) {
         String logprefix = request.getRequestURI() + " ";
