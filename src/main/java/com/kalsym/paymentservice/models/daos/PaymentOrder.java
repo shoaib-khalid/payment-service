@@ -28,7 +28,7 @@ public class PaymentOrder {
     
     @Id @GeneratedValue(strategy=GenerationType.IDENTITY)
     Long id;
-    Integer customerId;
+    String customerId;
     String productCode;
     String clientTransactionId;
     String systemTransactionId;
@@ -39,5 +39,24 @@ public class PaymentOrder {
     String createdDate;
     String status;
     String statusDescription;
-    String updatedDate;    
+    String updatedDate;
+
+    @Override
+    public String toString() {
+        return "PaymentOrder{" +
+                "id=" + id +
+                ", customerId=" + customerId +
+                ", productCode='" + productCode + '\'' +
+                ", clientTransactionId='" + clientTransactionId + '\'' +
+                ", systemTransactionId='" + systemTransactionId + '\'' +
+                ", itemDescription='" + itemDescription + '\'' +
+                ", spId=" + spId +
+                ", spOrderId='" + spOrderId + '\'' +
+                ", spErrorCode='" + spErrorCode + '\'' +
+                ", createdDate='" + createdDate + '\'' +
+                ", status='" + status + '\'' +
+                ", statusDescription='" + statusDescription + '\'' +
+                ", updatedDate='" + updatedDate + '\'' +
+                '}';
+    }
 }

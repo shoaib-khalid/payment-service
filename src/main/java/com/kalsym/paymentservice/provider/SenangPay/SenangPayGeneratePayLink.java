@@ -7,11 +7,10 @@ import com.kalsym.paymentservice.provider.ProcessResult;
 import com.kalsym.paymentservice.provider.SyncDispatcher;
 import com.kalsym.paymentservice.utils.DateTimeUtil;
 import com.kalsym.paymentservice.utils.LogUtil;
+import org.apache.commons.codec.binary.Hex;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 
@@ -55,15 +54,18 @@ public class SenangPayGeneratePayLink extends SyncDispatcher {
         HashMap httpHeader = new HashMap();
         httpHeader.put("Host", "app.senangpay.my");
         String msg = "Payment was successful";
-        String parameters = "?email=" + order.getEmail().replaceAll("@", "%40") + "&amountpaid=" + order.getPaymentAmount() + "&txn_status=" + 1 + "&tx_msg=" + msg.replaceAll(" ", "+") + "&order_id=" + order.getTransactionId();
-        String hashV = "?email=" + order.getEmail().replaceAll("@", "%40") + "&amountpaid=" + order.getPaymentAmount() + "&txn_status=" + 1 + "&tx_msg=" + msg.replaceAll(" ", "+") + "&order_id=" + order.getTransactionId() + "hashed_value=[HASH]";
+        String parameters = generatelink_KalsymKey + order.getStoreName() + String.format("%.2f", order.getPaymentAmount()) + order.getTransactionId();
+//        String hashV = "?email=" + order.getEmail().replaceAll("@", "%40") + "&amountpaid=" + order.getPaymentAmount() + "&txn_status=" + 1 + "&tx_msg=" + msg.replaceAll(" ", "+") + "&order_id=" + order.getTransactionId() + "hashed_value=[HASH]";
+        String reqUrl = this.generatelink_url + this.merchantId;
+        String hashValue = hash(parameters, generatelink_KalsymKey);
+        LogUtil.info(logprefix, location, "Order Id : ", order.getTransactionId());
+        LogUtil.info(logprefix, location, "Hash value", hashValue);
 
-        String hashValue = hash(this.generatelink_KalsymKey + hashV, generatelink_KalsymKey);
+        System.out.println("String url: " + reqUrl);
 
-
-        String url = this.generatelink_url + this.merchantId + parameters + "&hashed_value=" + hashValue;
-        System.out.println("String url: " + url);
-        HttpResult httpResult = HttpConnection.SendHttpsRequest("POST", this.systemTransactionId, url, httpHeader, null, this.connectTimeout, this.waitTimeout);
+//        String url = this.generatelink_url + this.merchantId;
+//        System.out.println("String url: " + url);
+        HttpResult httpResult = HttpConnection.SendHttpsRequest("POST", this.systemTransactionId, reqUrl, httpHeader, null, this.connectTimeout, this.waitTimeout);
         if (httpResult.resultCode == 0) {
             LogUtil.info(logprefix, location, "Request successful", "");
             response.resultCode = 0;
@@ -101,17 +103,19 @@ public class SenangPayGeneratePayLink extends SyncDispatcher {
 
     public String hash(String req, String key) {
         byte[] hmacSha256 = null;
+        System.out.println("hash " + req);
 
         try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-            mac.init(secretKeySpec);
-            hmacSha256 = mac.doFinal(req.getBytes(StandardCharsets.UTF_8));
+            Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secret_key = new SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA256");
+            sha256_HMAC.init(secret_key);
+            hmacSha256 = sha256_HMAC.doFinal(req.getBytes("UTF-8"));
+
+
         } catch (Exception e) {
             throw new RuntimeException("Failed to calculate hmac-sha256", e);
         }
-
-        return Base64.getEncoder().encodeToString(hmacSha256);
+        return Hex.encodeHexString(hmacSha256);
     }
 }
 

@@ -58,6 +58,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         httpSecurity.csrf().disable()
                 .authorizeRequests().antMatchers(
                         "/payments/makePayment",
+                        "/payments/return",
                         "/payments/callback",
                         "/error",
                         "/v2/api-docs",

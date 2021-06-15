@@ -14,11 +14,12 @@ import lombok.Setter;
 @Getter
 @Setter
 public class PaymentRequest {
-   Integer customerId;
+   String customerId;
    String customerName;
    String transactionId;
    String productCode;
    Double paymentAmount;
    String systemTransactionId;
+   String storeName;
    String email;
 }
