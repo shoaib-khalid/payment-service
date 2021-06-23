@@ -1,8 +1,6 @@
 package com.kalsym.paymentservice.service;
 
-import com.kalsym.paymentservice.service.Response.OrderConfirm;
-import com.kalsym.paymentservice.service.Response.OrderConfirmData;
-import com.kalsym.paymentservice.service.Response.OrderUpdate;
+import com.kalsym.paymentservice.service.Response.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,6 +32,9 @@ public class OrderPaymentService {
     //@Autowired
     @Value("${order-service.URL:https://api.symplified.biz/order-service/v1/orders/}")
     String orderUrl;
+
+    @Value("${store-service.URL:https://api.symplified.biz/product-service/v1/}")
+    String storeUrl;
 
 
     @Value("${product-service.token:Bearer accessToken}")
@@ -82,5 +83,40 @@ public class OrderPaymentService {
         }
         return null;
     }
+
+
+    public StoreDetails getStoreDeliveryDetails(String storeId) {
+        String url = storeUrl + "stores/" + storeId ;
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Authorization", orderServiceToken);
+
+            HttpEntity httpEntity = new HttpEntity(headers);
+
+            logger.debug("Sending request to store-service: {} to get store group name (liveChatCsrGroupName) against storeId: {} , httpEntity: {}", url, storeId, httpEntity);
+            ResponseEntity res = restTemplate.exchange(url, HttpMethod.GET, httpEntity, StoreDetailsData.class);
+
+            if (res != null) {
+                StoreDetailsData storeResponse = (StoreDetailsData) res.getBody();
+                logger.debug("Store orders group (liveChatOrdersGroupName) received: {}, against storeId: {}", storeResponse.getData(), storeId);
+                return storeResponse.getData();
+            } else {
+                logger.warn("Cannot get storename against storeId: {}", storeId);
+            }
+
+            logger.debug("Request sent to live service, responseCode: {}, responseBody: {}", res.getStatusCode(), res.getBody());
+        } catch (RestClientException e) {
+            logger.error("Error getting storeName against storeId:{}, url: {}", storeId, storeUrl, e);
+            return null;
+        }
+        return null;
+    }
+
+
+
+
+
 }
 

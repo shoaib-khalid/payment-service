@@ -9,6 +9,7 @@ import com.kalsym.paymentservice.provider.SpCallbackResult;
 import com.kalsym.paymentservice.repositories.*;
 import com.kalsym.paymentservice.service.OrderPaymentService;
 import com.kalsym.paymentservice.service.Response.OrderConfirm;
+import com.kalsym.paymentservice.service.Response.StoreDetails;
 import com.kalsym.paymentservice.utils.DateTimeUtil;
 import com.kalsym.paymentservice.utils.LogUtil;
 import com.kalsym.paymentservice.utils.StringUtility;
@@ -204,6 +205,7 @@ public class PaymentsController {
                                                 @RequestParam(required = false, defaultValue = "") String name,
                                                 @RequestParam(required = false, defaultValue = "") String email,
                                                 @RequestParam(required = false, defaultValue = "") String phone,
+
                                                 @RequestParam(required = false, defaultValue = "") String amount,
                                                 @RequestParam(required = false, defaultValue = "") String hash,
                                                 @RequestParam(required = false, defaultValue = "") int status_id,
@@ -227,7 +229,9 @@ public class PaymentsController {
         String systemTransactionId = StringUtility.CreateRefID("CB");
         String IP = request.getRemoteAddr();
         if (status_id == 1) {
-            OrderConfirm res = paymentService.updateStatus(order_id, "Completed", "KUMAR", msg);
+            OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_CONFIRMED", "", msg);
+            StoreDetails stores = paymentService.getStoreDeliveryDetails(res.getStoreId());
+
 
             String spErrorCode = String.valueOf(status_id);
             String statusDescription = msg;
@@ -250,7 +254,7 @@ public class PaymentsController {
 
             try {
                 //send redirect to Thank You page
-                String url = "https://cinema-online.symplified.store/thankyou?txid=" + paymentTransactionId + "&refId=" + clientTransactionId + "&status=" + status;
+                String url = "https://" + stores.getDomain() + ".symplified.store/thankyou?txid=" + paymentTransactionId + "&refId=" + clientTransactionId + "&status=" + status;
                 LogUtil.info(systemTransactionId, location, "Redirect to url:" + url + " with " + HttpStatus.SEE_OTHER, "");
                 URI uri = new URI(url);
                 HttpHeaders httpHeaders = new HttpHeaders();
@@ -266,7 +270,7 @@ public class PaymentsController {
                 return ResponseEntity.status(HttpStatus.OK).body(response);
             }
         } else {
-            OrderConfirm res = paymentService.updateStatus(order_id, "Failed", "KUMAR", msg);
+            OrderConfirm res = paymentService.updateStatus(order_id, "FAILED", "", msg);
 
             //fail to get price
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
