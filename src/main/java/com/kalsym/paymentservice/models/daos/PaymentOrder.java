@@ -40,6 +40,7 @@ public class PaymentOrder {
     String status;
     String statusDescription;
     String updatedDate;
+    String paymentChannel;
 
     @Override
     public String toString() {

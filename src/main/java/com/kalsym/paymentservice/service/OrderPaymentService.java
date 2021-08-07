@@ -12,16 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Locale;
-import java.util.TimeZone;
 
 @Service
 public class OrderPaymentService {
@@ -86,9 +77,12 @@ public class OrderPaymentService {
 
 
     public StoreDetails getStoreDeliveryDetails(String storeId) {
-        String url = storeUrl + "stores/" + storeId ;
+
+        String url = storeUrl + "stores/" + storeId;
+        System.err.println("Store " + url);
         try {
             RestTemplate restTemplate = new RestTemplate();
+            logger.info("StoreGetDetailsURL : " + url);
 
             HttpHeaders headers = new HttpHeaders();
             headers.add("Authorization", orderServiceToken);
@@ -113,9 +107,6 @@ public class OrderPaymentService {
         }
         return null;
     }
-
-
-
 
 
 }

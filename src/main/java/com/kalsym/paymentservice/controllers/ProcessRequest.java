@@ -4,32 +4,17 @@
  */
 package com.kalsym.paymentservice.controllers;
 
-import com.kalsym.paymentservice.provider.ProcessResult;
-import com.kalsym.paymentservice.models.daos.PaymentRequest;
-import com.kalsym.paymentservice.models.daos.PaymentOrder;
-import com.kalsym.paymentservice.models.daos.Provider;
-import com.kalsym.paymentservice.models.daos.ProviderRatePlanId;
-import com.kalsym.paymentservice.models.daos.ProviderRatePlan;
-import com.kalsym.paymentservice.models.daos.ProviderConfiguration;
-import com.kalsym.paymentservice.models.daos.ProviderIp;
-import com.kalsym.paymentservice.repositories.ProviderRatePlanRepository;
+import com.kalsym.paymentservice.models.daos.*;
+import com.kalsym.paymentservice.provider.*;
 import com.kalsym.paymentservice.repositories.ProviderConfigurationRepository;
-import com.kalsym.paymentservice.repositories.ProviderRepository;
 import com.kalsym.paymentservice.repositories.ProviderIpRepository;
-import com.kalsym.paymentservice.provider.ProviderProcessor;
-import com.kalsym.paymentservice.provider.MakePaymentResult;
-import com.kalsym.paymentservice.provider.QueryPaymentResult;
-import com.kalsym.paymentservice.provider.SpCallbackResult;
-import com.kalsym.paymentservice.provider.ProviderResult;
+import com.kalsym.paymentservice.repositories.ProviderRatePlanRepository;
+import com.kalsym.paymentservice.repositories.ProviderRepository;
 import com.kalsym.paymentservice.utils.LogUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.List;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Optional;   
-
-import com.google.gson.JsonObject;
+import java.util.List;
+import java.util.Optional;
 
 /**
  *
@@ -148,7 +133,7 @@ public class ProcessRequest {
         return response;
     }*/
     
-    public ProcessResult ProcessCallback(String spIP, ProviderIpRepository providerIpRepository) {        
+    public ProcessResult ProcessCallback(String spIP, ProviderIpRepository providerIpRepository,int providerId) {
         //get provider rate plan  
         LogUtil.info(logprefix, location, "Caller IP:"+spIP, "");
         //get provider based on IP
@@ -157,7 +142,7 @@ public class ProcessRequest {
         ProcessResult result = new ProcessResult();
         //if (spId.isPresent()) {
             //int providerId = spId.get().getSpId();
-            int providerId = 1;
+//            int providerId = 1;
             LogUtil.info(logprefix, location, "Provider found. SpId:"+providerId, "");
             Optional<Provider> provider = providerRepository.findById(providerId);
             List<ProviderConfiguration> providerConfigList = providerConfigurationRepository.findByIdSpId(providerId);

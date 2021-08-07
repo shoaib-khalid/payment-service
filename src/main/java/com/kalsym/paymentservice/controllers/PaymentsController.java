@@ -5,7 +5,6 @@ import com.kalsym.paymentservice.models.daos.PaymentOrder;
 import com.kalsym.paymentservice.models.daos.PaymentRequest;
 import com.kalsym.paymentservice.provider.MakePaymentResult;
 import com.kalsym.paymentservice.provider.ProcessResult;
-import com.kalsym.paymentservice.provider.SpCallbackResult;
 import com.kalsym.paymentservice.repositories.*;
 import com.kalsym.paymentservice.service.OrderPaymentService;
 import com.kalsym.paymentservice.service.Response.OrderConfirm;
@@ -14,15 +13,12 @@ import com.kalsym.paymentservice.utils.DateTimeUtil;
 import com.kalsym.paymentservice.utils.LogUtil;
 import com.kalsym.paymentservice.utils.StringUtility;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import java.net.URI;
-import java.util.Map;
 
 /**
  * @author Sarosh
@@ -75,12 +71,14 @@ public class PaymentsController {
             paymentOrder.setCustomerId(paymentRequest.getCustomerId());
             paymentOrder.setClientTransactionId(paymentRequest.getTransactionId());
             paymentOrder.setSystemTransactionId(systemTransactionId);
+            paymentOrder.setStatus("PENDING");
             paymentOrder.setProductCode(paymentRequest.getProductCode());
 
             MakePaymentResult paymentOrderResult = (MakePaymentResult) processResult.returnObject;
             PaymentOrder orderCreated = paymentOrderResult.orderCreated;
             paymentOrder.setCreatedDate(orderCreated.getCreatedDate());
-            paymentOrder.setSpId(orderCreated.getSpId());
+            paymentOrder.setSpId(paymentOrderResult.providerId);
+
             LogUtil.info(systemTransactionId, location, "PaymentOrder ", paymentOrder.toString());
 
             paymentOrdersRepository.save(paymentOrder);
@@ -96,7 +94,7 @@ public class PaymentsController {
     }
 
 
-    /*@RequestMapping(method = RequestMethod.GET, value = "/querypayment/{payment-id}", name = "payments-query-payment")
+/*    @RequestMapping(method = RequestMethod.GET, value = "/querypayment/{payment-id}", name = "payments-query-payment")
     public ResponseEntity<HttpReponse> queryPayment(HttpServletRequest request,
             @PathVariable("payment-id") String orderId) {
         String logprefix = request.getRequestURI() + " ";
@@ -129,18 +127,38 @@ public class PaymentsController {
         }
     }*/
 
-
-    @PostMapping(path = {"/callback"}, name = "payments-sp-callback")
+//TODO : Proper way callback in testing
+   /* @PostMapping(path = {"/callback"}, name = "payments-sp-callback")
     public ResponseEntity<HttpReponse> spCallback(HttpServletRequest request,
-                                                  @RequestParam Map<String, String> requestBody) {
+                                                  @RequestParam Map<String, String> requestBody,
+                                                  @RequestParam(required = false, defaultValue = "") String name,
+                                                  @RequestParam(required = false, defaultValue = "") String email,
+                                                  @RequestParam(required = false, defaultValue = "") String phone,
+                                                  @RequestParam(required = false, defaultValue = "") String amount,
+                                                  @RequestParam(required = false, defaultValue = "") String hash,
+                                                  @RequestParam(required = false, defaultValue = "") int status_id,
+                                                  @RequestParam(required = false, defaultValue = "") String order_id,
+                                                  @RequestParam(required = false, defaultValue = "") String transaction_id,
+                                                  @RequestParam(required = false, defaultValue = "") String msg) {
         String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
         HttpReponse response = new HttpReponse(request.getRequestURI());
+        if (requestBody.isEmpty()) {
+            requestBody.put("name", name);
+            requestBody.put("email", email);
+            requestBody.put("phone", phone);
+            requestBody.put("amount", amount);
+            requestBody.put("hash", hash);
+            requestBody.put("status_id", String.valueOf(status_id));
+            requestBody.put("order_id", order_id);
+            requestBody.put("transaction_id", transaction_id);
+            requestBody.put("msg", msg);
+        }
 
         LogUtil.info(logprefix, location, "receive callback from Provider", "");
         // using for-each loop for iteration over Map.entrySet()
-        ///Gson gson = new Gson();
-        ///JsonObject requestBodyJson = gson.toJsonTree(requestBody).getAsJsonObject();
+        // Gson gson = new Gson();
+        // JsonObject requestBodyJson = gson.toJsonTree(requestBody).getAsJsonObject();
         for (Map.Entry<String, String> entry : requestBody.entrySet()) {
             LogUtil.info(logprefix, location, "Key = " + entry.getKey() + ", Value = " + entry.getValue(), "");
         }
@@ -148,9 +166,12 @@ public class PaymentsController {
         String systemTransactionId = StringUtility.CreateRefID("CB");
         String IP = request.getRemoteAddr();
 
-        LogUtil.info(logprefix, location, "IP:" + IP, "");
+        PaymentOrder order = paymentOrdersRepository.findByClientTransactionId(order_id);
+        LogUtil.info(logprefix, location, "IP:" + IP, order.getClientTransactionId());
+        LogUtil.info(logprefix, location, "IP:" + IP, order.getClientTransactionId());
+        LogUtil.info(logprefix, location, "IP:" + IP, providerIpRepository.toString());
         ProcessRequest process = new ProcessRequest(systemTransactionId, requestBody, providerRatePlanRepository, providerConfigurationRepository, providerRepository);
-        ProcessResult processResult = process.ProcessCallback(IP, providerIpRepository);
+        ProcessResult processResult = process.ProcessCallback(IP, providerIpRepository, order.getSpId());
         LogUtil.info(systemTransactionId, location, "ProcessRequest finish. resultCode:" + processResult.resultCode, "");
 
         if (processResult.resultCode == 0) {
@@ -198,9 +219,74 @@ public class PaymentsController {
             //fail to get price
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
+    }*/
+
+    @PostMapping(path = {"/callback"}, name = "payments-sp-callback")
+    public ResponseEntity<HttpReponse> spCallback(HttpServletRequest request,
+                                                  @RequestParam(required = false, defaultValue = "") String name,
+                                                  @RequestParam(required = false, defaultValue = "") String email,
+                                                  @RequestParam(required = false, defaultValue = "") String phone,
+
+                                                  @RequestParam(required = false, defaultValue = "") String amount,
+                                                  @RequestParam(required = false, defaultValue = "") String hash,
+                                                  @RequestParam(required = false, defaultValue = "") int status_id,
+                                                  @RequestParam(required = false, defaultValue = "") String order_id,
+                                                  @RequestParam(required = false, defaultValue = "") String transaction_id,
+                                                  @RequestParam(required = false, defaultValue = "") String msg,
+                                                  @RequestParam(required = false, defaultValue = "") String payment_channel) {
+        String logprefix = request.getRequestURI() + " ";
+        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
+        HttpReponse response = new HttpReponse(request.getRequestURI());
+
+        LogUtil.info(logprefix, location, "Receive returnUrl ", "Name: " + name + " email: " + email + " phone: " + phone + " amount:" + amount + " hash :" + hash + " orderId: " + order_id + " transactionId: " + transaction_id + " msg: " + msg);
+        String systemTransactionId = StringUtility.CreateRefID("CB");
+        String IP = request.getRemoteAddr();
+        PaymentOrder order = paymentOrdersRepository.findByClientTransactionId(order_id);
+        if (order.getStatus().equals("PENDING")) {
+            if (status_id == 1) {
+                OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_CONFIRMED", "", msg);
+                StoreDetails stores = paymentService.getStoreDeliveryDetails(res.getStoreId());
+
+
+                String spErrorCode = String.valueOf(status_id);
+                String statusDescription = msg;
+                String paymentTransactionId = transaction_id;
+                String clientTransactionId = order_id;
+                String status = "SUCCESS";
+                PaymentOrder deliveryOrder = paymentOrdersRepository.findByClientTransactionIdAndStatus(order_id, null);
+                if (deliveryOrder != null) {
+                    clientTransactionId = deliveryOrder.getClientTransactionId();
+                    LogUtil.info(systemTransactionId, location, "DeliveryOrder found. Update status and updated datetime", "");
+                    deliveryOrder.setStatus(status);
+                    deliveryOrder.setPaymentChannel(payment_channel);
+                    deliveryOrder.setUpdatedDate(DateTimeUtil.currentTimestamp());
+                    deliveryOrder.setSpErrorCode(spErrorCode);
+                    deliveryOrder.setSpOrderId(transaction_id);
+                    deliveryOrder.setStatusDescription(statusDescription);
+                    paymentOrdersRepository.save(deliveryOrder);
+                } else {
+                    LogUtil.info(systemTransactionId, location, "DeliveryOrder not found for paymentTransactionId:" + paymentTransactionId, "");
+                }
+                response.setSuccessStatus(HttpStatus.OK);
+//                response.setData(processResult.returnObject);
+                LogUtil.info(systemTransactionId, location, "Response with " + HttpStatus.OK, "");
+                return ResponseEntity.status(HttpStatus.OK).body(response);
+            } else {
+                OrderConfirm res = paymentService.updateStatus(order_id, "FAILED", "", msg);
+
+                //fail to get price
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+        } else {
+            response.setSuccessStatus(HttpStatus.OK);
+            LogUtil.info(systemTransactionId, location, "Order Status is " + order.getStatus(), "");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        }
+
     }
 
-    @GetMapping(path = {"/return"}, name = "payments-sp-callback-senangPay")
+/*    @GetMapping(path = {"/return"}, name = "payments-sp-callback-senangPay")
     public ResponseEntity<HttpReponse> returnSP(HttpServletRequest request,
                                                 @RequestParam(required = false, defaultValue = "") String name,
                                                 @RequestParam(required = false, defaultValue = "") String email,
@@ -275,7 +361,7 @@ public class PaymentsController {
             //fail to get price
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
-    }
+    }*/
 
 
 }
