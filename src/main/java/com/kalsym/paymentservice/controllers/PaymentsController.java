@@ -245,7 +245,7 @@ public class PaymentsController {
         if (order.getStatus().equals("PENDING")) {
             if (status_id == 1) {
                 OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_CONFIRMED", "", msg);
-//                StoreDetails stores = paymentService.getStoreDeliveryDetails(res.getStoreId());
+                StoreDetails stores = paymentService.getStoreDeliveryDetails(res.getStoreId());
                 String spErrorCode = String.valueOf(status_id);
                 String statusDescription = msg;
                 String paymentTransactionId = transaction_id;
