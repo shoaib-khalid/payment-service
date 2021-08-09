@@ -20,13 +20,12 @@ public class OrderPaymentService {
 
     private static Logger logger = LoggerFactory.getLogger("application");
 
-    //@Autowired
-    @Value("${order-service.URL:https://api.symplified.biz/order-service/v1/orders/}")
+
+    @Value("${orderUrl}")
     String orderUrl;
 
-    @Value("${store-service.URL:https://api.symplified.biz/product-service/v1/}")
+    @Value("${storeUrl}")
     String storeUrl;
-
 
     @Value("${product-service.token:Bearer accessToken}")
     private String orderServiceToken;
