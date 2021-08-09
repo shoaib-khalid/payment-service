@@ -20,7 +20,6 @@ public class OrderPaymentService {
 
     private static Logger logger = LoggerFactory.getLogger("application");
 
-
     @Value("${orderUrl}")
     String orderUrl;
 
