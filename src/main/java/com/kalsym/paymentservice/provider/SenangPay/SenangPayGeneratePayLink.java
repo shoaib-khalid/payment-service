@@ -29,6 +29,7 @@ public class SenangPayGeneratePayLink extends SyncDispatcher {
     private String sslVersion = "SSL";
     private String logprefix;
     private String location = "SenangPayGeneratePaymentLink";
+    private String host;
 
     public SenangPayGeneratePayLink(CountDownLatch latch, HashMap config, PaymentRequest order, String systemTransactionId, Integer providerId) {
         super(latch);
@@ -41,6 +42,7 @@ public class SenangPayGeneratePayLink extends SyncDispatcher {
         this.waitTimeout = Integer.parseInt((String) config.get("senangPay_wait_timeout"));
         this.merchantId = (String) config.get("senangPay_MerchantId");
         productMap = (HashMap) config.get("productCodeMapping");
+        this.host = (String) config.get("host");
         this.order = order;
         this.sslVersion = (String) config.get("ssl_version");
         this.providerId = providerId;
@@ -52,7 +54,7 @@ public class SenangPayGeneratePayLink extends SyncDispatcher {
         LogUtil.info(logprefix, location, "Process start", "");
         ProcessResult response = new ProcessResult();
         HashMap httpHeader = new HashMap();
-        httpHeader.put("Host", "app.senangpay.my");
+        httpHeader.put("Host", host);
         String msg = "Payment was successful";
         String parameters = generatelink_KalsymKey + order.getStoreName() + String.format("%.2f", order.getPaymentAmount()) + order.getTransactionId();
 //        String hashV = "?email=" + order.getEmail().replaceAll("@", "%40") + "&amountpaid=" + order.getPaymentAmount() + "&txn_status=" + 1 + "&tx_msg=" + msg.replaceAll(" ", "+") + "&order_id=" + order.getTransactionId() + "hashed_value=[HASH]";
