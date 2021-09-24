@@ -250,8 +250,8 @@ public class PaymentsController {
                 String statusDescription = msg;
                 String paymentTransactionId = transaction_id;
                 String clientTransactionId = order_id;
-                String status = "SUCCESS";
-                PaymentOrder deliveryOrder = paymentOrdersRepository.findByClientTransactionIdAndStatus(order_id, null);
+                String status = "PAID";
+                PaymentOrder deliveryOrder = paymentOrdersRepository.findByClientTransactionIdAndStatus(order_id, "PENDING");
                 if (deliveryOrder != null) {
                     clientTransactionId = deliveryOrder.getClientTransactionId();
                     LogUtil.info(systemTransactionId, location, "DeliveryOrder found. Update status and updated datetime", "");
