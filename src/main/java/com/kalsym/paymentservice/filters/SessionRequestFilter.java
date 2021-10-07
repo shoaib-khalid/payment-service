@@ -1,5 +1,6 @@
 package com.kalsym.paymentservice.filters;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kalsym.paymentservice.utils.DateTimeUtil;
 import com.kalsym.paymentservice.utils.LogUtil;
@@ -75,7 +76,7 @@ public class SessionRequestFilter extends OncePerRequestFilter {
 
                 if (authResponse.getStatusCode() == HttpStatus.ACCEPTED) {
                     ObjectMapper mapper = new ObjectMapper();
-//                    LogUtil.info(VersionHolder.VERSION, location, "data: " + authResponse.getBody().getData(), "");
+                    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);//                    LogUtil.info(VersionHolder.VERSION, location, "data: " + authResponse.getBody().getData(), "");
 
                     auth = mapper.convertValue(authResponse.getBody().getData(), Auth.class);
                     username = auth.getSession().getUsername();
