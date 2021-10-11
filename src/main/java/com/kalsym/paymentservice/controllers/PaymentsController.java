@@ -222,18 +222,18 @@ public class PaymentsController {
     }*/
 
     @PostMapping(path = {"/callback"}, name = "payments-sp-callback")
-    public ResponseEntity<HttpReponse> spCallback(HttpServletRequest request,
-                                                  @RequestParam(required = false, defaultValue = "") String name,
-                                                  @RequestParam(required = false, defaultValue = "") String email,
-                                                  @RequestParam(required = false, defaultValue = "") String phone,
+    public String spCallback(HttpServletRequest request,
+                             @RequestParam(required = false, defaultValue = "") String name,
+                             @RequestParam(required = false, defaultValue = "") String email,
+                             @RequestParam(required = false, defaultValue = "") String phone,
 
-                                                  @RequestParam(required = false, defaultValue = "") String amount,
-                                                  @RequestParam(required = false, defaultValue = "") String hash,
-                                                  @RequestParam(required = false, defaultValue = "") int status_id,
-                                                  @RequestParam(required = false, defaultValue = "") String order_id,
-                                                  @RequestParam(required = false, defaultValue = "") String transaction_id,
-                                                  @RequestParam(required = false, defaultValue = "") String msg,
-                                                  @RequestParam(required = false, defaultValue = "") String payment_channel) {
+                             @RequestParam(required = false, defaultValue = "") String amount,
+                             @RequestParam(required = false, defaultValue = "") String hash,
+                             @RequestParam(required = false, defaultValue = "") int status_id,
+                             @RequestParam(required = false, defaultValue = "") String order_id,
+                             @RequestParam(required = false, defaultValue = "") String transaction_id,
+                             @RequestParam(required = false, defaultValue = "") String msg,
+                             @RequestParam(required = false, defaultValue = "") String payment_channel) {
         String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
         HttpReponse response = new HttpReponse(request.getRequestURI());
@@ -268,17 +268,17 @@ public class PaymentsController {
                 response.setSuccessStatus(HttpStatus.OK);
 //                response.setData(processResult.returnObject);
                 LogUtil.info(systemTransactionId, location, "Response with " + HttpStatus.OK, "");
-                return ResponseEntity.status(HttpStatus.OK).body(response);
+                return "<html>\n" + "OK" + "\n" + "</html>";
             } else {
                 OrderConfirm res = paymentService.updateStatus(order_id, "FAILED", "", msg);
 
                 //fail to get price
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+                return "<html>\n" + "OK" + "\n" + "</html>";
             }
         } else {
             response.setSuccessStatus(HttpStatus.OK);
             LogUtil.info(systemTransactionId, location, "Order Status is " + order.getStatus(), "");
-            return ResponseEntity.status(HttpStatus.OK).body(response);
+            return "<html>\n" + "OK" + "\n" + "</html>";
 
         }
 

@@ -1,3 +1,11 @@
+Version 2.0.2
+--------------------------------
+Date:07-Oct-2021
+Developer:Kumar
+
+1. Fixed bug for user authentication in (Session Filter Class)
+2. Response for Senangpay Callback Return "OK" in html view
+
 Version v.1.0-FINAL
 --------------------------------
 Date:22-March-2021
