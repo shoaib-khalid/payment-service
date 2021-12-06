@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.math.BigInteger;
+import java.security.MessageDigest;
 
 /**
  * @author Sarosh
@@ -242,6 +244,7 @@ public class PaymentsController {
         String systemTransactionId = StringUtility.CreateRefID("CB");
         String IP = request.getRemoteAddr();
         PaymentOrder order = paymentOrdersRepository.findByClientTransactionId(order_id);
+
         if (order.getStatus().equals("PENDING")) {
             if (status_id == 1) {
                 OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_CONFIRMED", "", msg);
@@ -270,7 +273,17 @@ public class PaymentsController {
                 LogUtil.info(systemTransactionId, location, "Response with " + HttpStatus.OK, "");
                 return "<html>\n" + "OK" + "\n" + "</html>";
             } else {
-                OrderConfirm res = paymentService.updateStatus(order_id, "FAILED", "", msg);
+                LogUtil.info(systemTransactionId, location, "DeliveryOrder found. Update status and updated datetime", "");
+
+                //TODO : Send Payment Failed Status
+//                deliveryOrder.setStatus(status);
+//                deliveryOrder.setPaymentChannel(payment_channel);
+//                deliveryOrder.setUpdatedDate(DateTimeUtil.currentTimestamp());
+//                deliveryOrder.setSpErrorCode(spErrorCode);
+//                deliveryOrder.setSpOrderId(transaction_id);
+//                deliveryOrder.setStatusDescription(statusDescription);
+//                paymentOrdersRepository.save(deliveryOrder);
+                OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_FAILED", "", msg);
 
                 //fail to get price
                 return "<html>\n" + "OK" + "\n" + "</html>";
@@ -362,4 +375,28 @@ public class PaymentsController {
     }*/
 
 
+    public String getMd5(String data) {
+        try {
+
+
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            // digest() method is called to calculate message digest
+            //  of an input digest() return array of byte
+            byte[] messageDigest = md.digest(data.getBytes());
+
+            // Convert byte array into signum representation
+            BigInteger no = new BigInteger(1, messageDigest);
+
+            // Convert message digest into hex value
+            String hashtext = no.toString(16);
+            while (hashtext.length() < 32) {
+                hashtext = "0" + hashtext;
+            }
+            return hashtext;
+
+        } catch (Exception exception) {
+            return null;
+
+        }
+    }
 }

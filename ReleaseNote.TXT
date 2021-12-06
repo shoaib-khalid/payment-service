@@ -1,3 +1,10 @@
+Version 2.0.5
+--------------------------------
+Date:06-Dec-2021
+Developer:Kumar
+
+1. Callback url update status to failed when payment declined
+
 Version 2.0.2
 --------------------------------
 Date:07-Oct-2021

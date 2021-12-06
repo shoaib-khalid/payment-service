@@ -34,9 +34,6 @@ public class OrderPaymentService {
         try {
             RestTemplate restTemplate = new RestTemplate();
             Instant instant = Instant.now();
-            System.out.println(instant.toString());
-
-//            String formattedDate = myDateObj.format(myFormatObj);
 
             HttpHeaders headers = new HttpHeaders();
             headers.add("Authorization", orderServiceToken);
@@ -46,7 +43,7 @@ public class OrderPaymentService {
             orders.setModifiedBy(modifyBy);
             orders.setOrderId(orderId);
             orders.setStatus(paymentStatus);
-            System.out.println("payment" + orders.toString());
+            logger.info("payment : " + orders);
 
             HttpEntity<OrderUpdate> httpEntity;
             httpEntity = new HttpEntity(orders, headers);
@@ -54,7 +51,7 @@ public class OrderPaymentService {
             ResponseEntity<OrderConfirmData> res = restTemplate.exchange(url, HttpMethod.PUT, httpEntity, OrderConfirmData.class);
             logger.info("res : " + res);
 
-            logger.debug("Sending request to product-service: {} to get store group name (liveChatCsrGroupName) against storeId: {} , httpEntity: {}", url, orderId, httpEntity);
+            logger.debug("Sending request to product-service: {} to get Order (liveChatCsrGroupName) against storeId: {} , httpEntity: {}", url, orderId, httpEntity);
 //            ResponseEntity res = restTemplate.exchange(url, HttpMethod.PUT, httpEntity, OrderConfirmData.class);
 //
             if (res != null) {
@@ -62,12 +59,12 @@ public class OrderPaymentService {
                 logger.debug("Store orders group (liveChatOrdersGroupName) received: {}, against storeId: {}", orderConfirm.getData().getId(), orderId);
                 return orderConfirm.getData();
             } else {
-                logger.warn("Cannot get storename against storeId: {}", orderId);
+                logger.warn("Cannot get Order against orderId: {}", orderId);
             }
 
             logger.debug("Request sent to live service, responseCode: {}, responseBody: {}", res.getStatusCode(), res.getBody());
         } catch (RestClientException e) {
-            logger.error("Error getting storeName against storeId:{}, url: {}", orderId, orderId, e);
+            logger.error("Error getting Order id:{}, url: {}", orderId, url, e);
             return null;
         }
         return null;
