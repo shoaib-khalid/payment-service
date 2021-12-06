@@ -274,15 +274,17 @@ public class PaymentsController {
                 return "<html>\n" + "OK" + "\n" + "</html>";
             } else {
                 LogUtil.info(systemTransactionId, location, "DeliveryOrder found. Update status and updated datetime", "");
-
+                PaymentOrder deliveryOrder = paymentOrdersRepository.findByClientTransactionIdAndStatus(order_id, "PENDING");
+                String spErrorCode = String.valueOf(status_id);
+                String statusDescription = msg;
                 //TODO : Send Payment Failed Status
-//                deliveryOrder.setStatus(status);
-//                deliveryOrder.setPaymentChannel(payment_channel);
-//                deliveryOrder.setUpdatedDate(DateTimeUtil.currentTimestamp());
-//                deliveryOrder.setSpErrorCode(spErrorCode);
-//                deliveryOrder.setSpOrderId(transaction_id);
-//                deliveryOrder.setStatusDescription(statusDescription);
-//                paymentOrdersRepository.save(deliveryOrder);
+                deliveryOrder.setStatus("FAILED");
+                deliveryOrder.setPaymentChannel(payment_channel);
+                deliveryOrder.setUpdatedDate(DateTimeUtil.currentTimestamp());
+                deliveryOrder.setSpErrorCode(spErrorCode);
+                deliveryOrder.setSpOrderId(transaction_id);
+                deliveryOrder.setStatusDescription(statusDescription);
+                paymentOrdersRepository.save(deliveryOrder);
                 OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_FAILED", "", msg);
 
                 //fail to get price
