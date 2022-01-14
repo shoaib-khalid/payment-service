@@ -61,9 +61,10 @@ public class PaymentsController {
         String systemTransactionId = StringUtility.CreateRefID("PY");
         paymentRequest.setSystemTransactionId(systemTransactionId);
 
-        OrderConfirm res = paymentService.getOrderById(paymentRequest.getOrderId());
+        OrderConfirm res = paymentService.getOrderById(paymentRequest.getTransactionId());
+        LogUtil.info(systemTransactionId, location, "Order Service Return :   ", res.getTotal().toString());
 
-        paymentRequest.setPaymentAmount(String.valueOf(res.getTotal()));
+        paymentRequest.setPaymentAmount(res.getTotal());
         LogUtil.info(systemTransactionId, location, "Payment Amount  ", paymentRequest.getPaymentAmount().toString());
 
 
@@ -90,7 +91,7 @@ public class PaymentsController {
 
             LogUtil.info(systemTransactionId, location, "PaymentOrder ", paymentOrder.toString());
 
-//            paymentOrdersRepository.save(paymentOrder);
+            paymentOrdersRepository.save(paymentOrder);
 
             response.setSuccessStatus(HttpStatus.OK);
             response.setData(processResult.returnObject);

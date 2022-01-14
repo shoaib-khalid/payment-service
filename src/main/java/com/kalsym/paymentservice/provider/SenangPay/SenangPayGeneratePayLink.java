@@ -58,12 +58,17 @@ public class SenangPayGeneratePayLink extends SyncDispatcher {
         String msg = "Payment was successful";
         String parameters = generatelink_KalsymKey + order.getStoreName() + String.format("%.2f", order.getPaymentAmount()) + order.getTransactionId();
 //        String hashV = "?email=" + order.getEmail().replaceAll("@", "%40") + "&amountpaid=" + order.getPaymentAmount() + "&txn_status=" + 1 + "&tx_msg=" + msg.replaceAll(" ", "+") + "&order_id=" + order.getTransactionId() + "hashed_value=[HASH]";
+        LogUtil.info(logprefix, location, "parameters: ", parameters);
+
+        //parameter = key+storeName+totalAmount+sysmtransactionID
+        //hash(key,parameter) //HmacSHA256
+
         String reqUrl = this.generatelink_url + this.merchantId;
         String hashValue = hash(parameters, generatelink_KalsymKey);
         LogUtil.info(logprefix, location, "Order Id : ", order.getTransactionId());
         LogUtil.info(logprefix, location, "Hash value", hashValue);
 
-        System.out.println("String url: " + reqUrl);
+        LogUtil.info(logprefix, location, "String url: ", reqUrl);
 
 //        String url = this.generatelink_url + this.merchantId;
 //        System.out.println("String url: " + url);
