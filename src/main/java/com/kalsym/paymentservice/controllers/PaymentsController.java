@@ -55,10 +55,17 @@ public class PaymentsController {
         HttpReponse response = new HttpReponse(request.getRequestURI());
 
         LogUtil.info(logprefix, location, "", "");
+        paymentRequest.setPaymentAmount(null);
 
         //generate transaction id
         String systemTransactionId = StringUtility.CreateRefID("PY");
         paymentRequest.setSystemTransactionId(systemTransactionId);
+
+        OrderConfirm res = paymentService.getOrderById(paymentRequest.getOrderId());
+
+        paymentRequest.setPaymentAmount(res.getTotal());
+        LogUtil.info(systemTransactionId, location, "Payment Amount  ", paymentRequest.getPaymentAmount().toString());
+
 
         LogUtil.info(systemTransactionId, location, "PaymentOrder Id ", paymentRequest.getTransactionId());
 
@@ -83,7 +90,7 @@ public class PaymentsController {
 
             LogUtil.info(systemTransactionId, location, "PaymentOrder ", paymentOrder.toString());
 
-            paymentOrdersRepository.save(paymentOrder);
+//            paymentOrdersRepository.save(paymentOrder);
 
             response.setSuccessStatus(HttpStatus.OK);
             response.setData(processResult.returnObject);

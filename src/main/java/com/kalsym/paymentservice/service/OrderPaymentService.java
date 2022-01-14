@@ -103,6 +103,39 @@ public class OrderPaymentService {
         return null;
     }
 
+    public OrderConfirm getOrderById(String orderId) {
+
+        String url = orderUrl + orderId;
+        System.err.println("Order url " + url);
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            logger.info("OrderGetDetailsURL : " + url);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Authorization", orderServiceToken);
+
+            HttpEntity httpEntity = new HttpEntity(headers);
+
+            logger.debug("Sending request to order-service: {} to get order group name (liveChatCsrGroupName) against orderId: {} , httpEntity: {}", url, orderId, httpEntity);
+            ResponseEntity res = restTemplate.exchange(url, HttpMethod.GET, httpEntity, OrderConfirmData.class);
+
+            if (res != null) {
+                OrderConfirmData orderConfirmData = (OrderConfirmData) res.getBody();
+                logger.debug("Orders group (liveChatOrdersGroupName) received: {}, against orderId: {}", orderConfirmData.getData(), orderId);
+                return orderConfirmData.getData();
+            } else {
+                logger.warn("Cannot fine the order for id: {}", orderId);
+            }
+
+            logger.debug("Request sent to live service, responseCode: {}, responseBody: {}", res.getStatusCode(), res.getBody());
+        } catch (RestClientException e) {
+            logger.error("Error getting Order against orderId:{}, url: {}", orderId, orderUrl, e);
+            return null;
+        }
+        return null;
+    }
+
+
 
 }
 

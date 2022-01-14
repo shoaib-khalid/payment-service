@@ -14,7 +14,7 @@ public class OrderConfirm {
     String subTotal;
     String serviceCharges;
     String deliveryCharges;
-    String total;
+    Double total;
     String completionStatus;
     String paymentStatus;
     String customerNotes;
