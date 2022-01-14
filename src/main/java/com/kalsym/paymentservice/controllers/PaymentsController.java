@@ -63,7 +63,7 @@ public class PaymentsController {
 
         OrderConfirm res = paymentService.getOrderById(paymentRequest.getOrderId());
 
-        paymentRequest.setPaymentAmount(res.getTotal());
+        paymentRequest.setPaymentAmount(String.valueOf(res.getTotal()));
         LogUtil.info(systemTransactionId, location, "Payment Amount  ", paymentRequest.getPaymentAmount().toString());
 
 

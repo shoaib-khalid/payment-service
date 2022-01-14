@@ -18,7 +18,7 @@ public class PaymentRequest {
    String customerName;
    String transactionId;
    String productCode;
-   Double paymentAmount;
+   String paymentAmount;
    String systemTransactionId;
    String storeName;
    String email;
