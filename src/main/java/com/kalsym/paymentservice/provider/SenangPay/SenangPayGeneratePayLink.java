@@ -56,7 +56,7 @@ public class SenangPayGeneratePayLink extends SyncDispatcher {
         HashMap httpHeader = new HashMap();
         httpHeader.put("Host", host);
         String msg = "Payment was successful";
-        String parameters = generatelink_KalsymKey + order.getStoreName() + String.format("%.2f", order.getPaymentAmount()) + order.getTransactionId();
+        String parameters = generatelink_KalsymKey + systemTransactionId + String.format("%.2f", order.getPaymentAmount()) + order.getTransactionId();
 //        String hashV = "?email=" + order.getEmail().replaceAll("@", "%40") + "&amountpaid=" + order.getPaymentAmount() + "&txn_status=" + 1 + "&tx_msg=" + msg.replaceAll(" ", "+") + "&order_id=" + order.getTransactionId() + "hashed_value=[HASH]";
         LogUtil.info(logprefix, location, "parameters: ", parameters);
 
@@ -98,6 +98,7 @@ public class SenangPayGeneratePayLink extends SyncDispatcher {
                 submitOrderResult.providerId = this.providerId;
                 submitOrderResult.paymentLink = respString;
                 submitOrderResult.hash = hashValue;
+                submitOrderResult.sysTransactionId = systemTransactionId;
             } else {
                 submitOrderResult.isSuccess = false;
             }

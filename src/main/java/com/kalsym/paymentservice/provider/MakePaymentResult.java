@@ -14,6 +14,7 @@ import com.kalsym.paymentservice.models.daos.PaymentOrder;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class MakePaymentResult {
     public int providerId;
+    public String sysTransactionId;
     public PaymentOrder orderCreated;
     public boolean isSuccess;
     public String paymentLink;
