@@ -69,39 +69,34 @@ public class SenangPayGeneratePayLink extends SyncDispatcher {
         LogUtil.info(logprefix, location, "Hash value", hashValue);
 
         LogUtil.info(logprefix, location, "String url: ", reqUrl);
-
+        response.returnObject = extractResponseBody(this.generatelink_url + this.merchantId, hashValue);
 //        String url = this.generatelink_url + this.merchantId;
 //        System.out.println("String url: " + url);
-        HttpResult httpResult = HttpConnection.SendHttpsRequest("POST", this.systemTransactionId, reqUrl, httpHeader, null, this.connectTimeout, this.waitTimeout);
-        if (httpResult.resultCode == 0) {
-            LogUtil.info(logprefix, location, "Request successful", "");
-            response.resultCode = 0;
-            response.returnObject = extractResponseBody(httpResult.httpResponseCode, this.generatelink_url + this.merchantId, hashValue);
-        } else {
-            LogUtil.info(logprefix, location, "Request failed", "");
-            response.resultCode = -1;
-        }
+//        HttpResult httpResult = HttpConnection.SendHttpsRequest("POST", this.systemTransactionId, reqUrl, httpHeader, null, this.connectTimeout, this.waitTimeout);
+//        if (httpResult.resultCode == 0) {
+//            LogUtil.info(logprefix, location, "Request successful", "");
+//            response.resultCode = 0;
+//            response.returnObject = extractResponseBody(httpResult.httpResponseCode, this.generatelink_url + this.merchantId, hashValue);
+//        } else {
+//            LogUtil.info(logprefix, location, "Request failed", "");
+//            response.resultCode = -1;
+//        }
         LogUtil.info(logprefix, location, "Process finish", "");
         return response;
     }
 
-    private MakePaymentResult extractResponseBody(Integer responseCode, String respString, String hashValue) {
+    private MakePaymentResult extractResponseBody(String respString, String hashValue) {
         MakePaymentResult submitOrderResult = new MakePaymentResult();
         try {
             System.out.println("Response : " + respString);
-            if (responseCode.equals(200)) {
-                PaymentOrder orderCreated = new PaymentOrder();
-                orderCreated.setSpErrorCode(responseCode.toString());
-                orderCreated.setCreatedDate(DateTimeUtil.currentTimestamp());
-                submitOrderResult.orderCreated = orderCreated;
-                submitOrderResult.isSuccess = true;
-                submitOrderResult.providerId = this.providerId;
-                submitOrderResult.paymentLink = respString;
-                submitOrderResult.hash = hashValue;
-                submitOrderResult.sysTransactionId = systemTransactionId;
-            } else {
-                submitOrderResult.isSuccess = false;
-            }
+            PaymentOrder orderCreated = new PaymentOrder();
+            orderCreated.setCreatedDate(DateTimeUtil.currentTimestamp());
+            submitOrderResult.orderCreated = orderCreated;
+            submitOrderResult.isSuccess = true;
+            submitOrderResult.providerId = this.providerId;
+            submitOrderResult.paymentLink = respString;
+            submitOrderResult.hash = hashValue;
+            submitOrderResult.sysTransactionId = systemTransactionId;
         } catch (Exception ex) {
             LogUtil.error(logprefix, location, "Error extracting result", "", ex);
         }
@@ -125,5 +120,28 @@ public class SenangPayGeneratePayLink extends SyncDispatcher {
         }
         return Hex.encodeHexString(hmacSha256);
     }
+
+//    private MakePaymentResult extractResponseBody(Integer responseCode, String respString, String hashValue) {
+//        MakePaymentResult submitOrderResult = new MakePaymentResult();
+//        try {
+//            System.out.println("Response : " + respString);
+//            if (responseCode.equals(200)) {
+//                PaymentOrder orderCreated = new PaymentOrder();
+//                orderCreated.setSpErrorCode(responseCode.toString());
+//                orderCreated.setCreatedDate(DateTimeUtil.currentTimestamp());
+//                submitOrderResult.orderCreated = orderCreated;
+//                submitOrderResult.isSuccess = true;
+//                submitOrderResult.providerId = this.providerId;
+//                submitOrderResult.paymentLink = respString;
+//                submitOrderResult.hash = hashValue;
+//                submitOrderResult.sysTransactionId = systemTransactionId;
+//            } else {
+//                submitOrderResult.isSuccess = false;
+//            }
+//        } catch (Exception ex) {
+//            LogUtil.error(logprefix, location, "Error extracting result", "", ex);
+//        }
+//        return submitOrderResult;
+//    }
 }
 
