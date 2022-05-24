@@ -135,6 +135,38 @@ public class OrderPaymentService {
         return null;
     }
 
+    public StoreDetails getStore(String storeId) {
+        String url = storeUrl + "stores/" + storeId;
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Authorization", orderServiceToken);
+
+            HttpEntity httpEntity = new HttpEntity(headers);
+
+            logger.debug("Sending request to product-service: {} to get store group name (liveChatCsrGroupName) against storeId: {} , httpEntity: {}", url, storeId, httpEntity);
+            ResponseEntity<StoreDetailsData> res = restTemplate.exchange(url, HttpMethod.GET, httpEntity, StoreDetailsData.class);
+
+            if (res != null) {
+                StoreDetailsData storeResponse = (StoreDetailsData) res.getBody();
+                assert storeResponse != null;
+                String storeName = storeResponse.getData().getLiveChatOrdersGroupName();
+                logger.debug("Store orders group (liveChatOrdersGroupName) received: {}, against storeId: {}", storeName, storeId);
+                System.out.println("Get Store Detail : " + storeResponse.getData());
+                return storeResponse.getData();
+            } else {
+                logger.warn("Cannot get storename against storeId: {}", storeId);
+            }
+
+            logger.debug("Request sent to live service, responseCode: {}, responseBody: {}", res.getStatusCode(), res.getBody());
+        } catch (RestClientException e) {
+            logger.error("Error getting storeName against storeId:{}, url: {}", storeId, url, e);
+            return null;
+        }
+        return null;
+    }
+
 
 
 }

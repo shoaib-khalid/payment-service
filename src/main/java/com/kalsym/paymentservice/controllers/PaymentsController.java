@@ -63,7 +63,9 @@ public class PaymentsController {
 
         OrderConfirm res = paymentService.getOrderById(paymentRequest.getTransactionId());
         LogUtil.info(systemTransactionId, location, "Order Service Return :   ", res.getTotal().toString());
+        StoreDetails storeDetails = paymentService.getStore(res.getStoreId());
 
+        paymentRequest.setRegionCountryId(storeDetails.getRegionCountryId());
         paymentRequest.setPaymentAmount(res.getTotal());
         LogUtil.info(systemTransactionId, location, "Payment Amount  ", paymentRequest.getPaymentAmount().toString());
 
@@ -88,6 +90,7 @@ public class PaymentsController {
             PaymentOrder orderCreated = paymentOrderResult.orderCreated;
             paymentOrder.setCreatedDate(orderCreated.getCreatedDate());
             paymentOrder.setSpId(paymentOrderResult.providerId);
+
 
             LogUtil.info(systemTransactionId, location, "PaymentOrder ", paymentOrder.toString());
 
