@@ -31,7 +31,8 @@ public class SenangPayGeneratePayLink extends SyncDispatcher {
     private String location = "SenangPayGeneratePaymentLink";
     private String host;
 
-    public SenangPayGeneratePayLink(CountDownLatch latch, HashMap config, PaymentRequest order, String systemTransactionId, Integer providerId) {
+    public SenangPayGeneratePayLink(CountDownLatch latch, HashMap config, PaymentRequest order,
+            String systemTransactionId, Integer providerId) {
         super(latch);
         logprefix = systemTransactionId;
         this.systemTransactionId = systemTransactionId;
@@ -56,12 +57,16 @@ public class SenangPayGeneratePayLink extends SyncDispatcher {
         HashMap httpHeader = new HashMap();
         httpHeader.put("Host", host);
         String msg = "Payment was successful";
-        String parameters = generatelink_KalsymKey + systemTransactionId + String.format("%.2f", order.getPaymentAmount()) + order.getTransactionId();
-//        String hashV = "?email=" + order.getEmail().replaceAll("@", "%40") + "&amountpaid=" + order.getPaymentAmount() + "&txn_status=" + 1 + "&tx_msg=" + msg.replaceAll(" ", "+") + "&order_id=" + order.getTransactionId() + "hashed_value=[HASH]";
+        String parameters = generatelink_KalsymKey + systemTransactionId
+                + String.format("%.2f", order.getPaymentAmount()) + order.getTransactionId();
+        // String hashV = "?email=" + order.getEmail().replaceAll("@", "%40") +
+        // "&amountpaid=" + order.getPaymentAmount() + "&txn_status=" + 1 + "&tx_msg=" +
+        // msg.replaceAll(" ", "+") + "&order_id=" + order.getTransactionId() +
+        // "hashed_value=[HASH]";
         LogUtil.info(logprefix, location, "parameters: ", parameters);
 
-        //parameter = key+storeName+totalAmount+sysmtransactionID
-        //hash(key,parameter) //HmacSHA256
+        // parameter = key+storeName+totalAmount+sysmtransactionID
+        // hash(key,parameter) //HmacSHA256
 
         String reqUrl = this.generatelink_url + this.merchantId;
         String hashValue = hash(parameters, generatelink_KalsymKey);
@@ -70,17 +75,20 @@ public class SenangPayGeneratePayLink extends SyncDispatcher {
 
         LogUtil.info(logprefix, location, "String url: ", reqUrl);
         response.returnObject = extractResponseBody(this.generatelink_url + this.merchantId, hashValue);
-//        String url = this.generatelink_url + this.merchantId;
-//        System.out.println("String url: " + url);
-//        HttpResult httpResult = HttpConnection.SendHttpsRequest("POST", this.systemTransactionId, reqUrl, httpHeader, null, this.connectTimeout, this.waitTimeout);
-//        if (httpResult.resultCode == 0) {
-//            LogUtil.info(logprefix, location, "Request successful", "");
-//            response.resultCode = 0;
-//            response.returnObject = extractResponseBody(httpResult.httpResponseCode, this.generatelink_url + this.merchantId, hashValue);
-//        } else {
-//            LogUtil.info(logprefix, location, "Request failed", "");
-//            response.resultCode = -1;
-//        }
+        // String url = this.generatelink_url + this.merchantId;
+        // System.out.println("String url: " + url);
+        // HttpResult httpResult = HttpConnection.SendHttpsRequest("POST",
+        // this.systemTransactionId, reqUrl, httpHeader, null, this.connectTimeout,
+        // this.waitTimeout);
+        // if (httpResult.resultCode == 0) {
+        // LogUtil.info(logprefix, location, "Request successful", "");
+        // response.resultCode = 0;
+        // response.returnObject = extractResponseBody(httpResult.httpResponseCode,
+        // this.generatelink_url + this.merchantId, hashValue);
+        // } else {
+        // LogUtil.info(logprefix, location, "Request failed", "");
+        // response.resultCode = -1;
+        // }
         LogUtil.info(logprefix, location, "Process finish", "");
         return response;
     }
@@ -97,12 +105,12 @@ public class SenangPayGeneratePayLink extends SyncDispatcher {
             submitOrderResult.paymentLink = respString;
             submitOrderResult.hash = hashValue;
             submitOrderResult.sysTransactionId = systemTransactionId;
+            submitOrderResult.token = "";
         } catch (Exception ex) {
             LogUtil.error(logprefix, location, "Error extracting result", "", ex);
         }
         return submitOrderResult;
     }
-
 
     public String hash(String req, String key) {
         byte[] hmacSha256 = null;
@@ -114,34 +122,33 @@ public class SenangPayGeneratePayLink extends SyncDispatcher {
             sha256_HMAC.init(secret_key);
             hmacSha256 = sha256_HMAC.doFinal(req.getBytes("UTF-8"));
 
-
         } catch (Exception e) {
             throw new RuntimeException("Failed to calculate hmac-sha256", e);
         }
         return Hex.encodeHexString(hmacSha256);
     }
 
-//    private MakePaymentResult extractResponseBody(Integer responseCode, String respString, String hashValue) {
-//        MakePaymentResult submitOrderResult = new MakePaymentResult();
-//        try {
-//            System.out.println("Response : " + respString);
-//            if (responseCode.equals(200)) {
-//                PaymentOrder orderCreated = new PaymentOrder();
-//                orderCreated.setSpErrorCode(responseCode.toString());
-//                orderCreated.setCreatedDate(DateTimeUtil.currentTimestamp());
-//                submitOrderResult.orderCreated = orderCreated;
-//                submitOrderResult.isSuccess = true;
-//                submitOrderResult.providerId = this.providerId;
-//                submitOrderResult.paymentLink = respString;
-//                submitOrderResult.hash = hashValue;
-//                submitOrderResult.sysTransactionId = systemTransactionId;
-//            } else {
-//                submitOrderResult.isSuccess = false;
-//            }
-//        } catch (Exception ex) {
-//            LogUtil.error(logprefix, location, "Error extracting result", "", ex);
-//        }
-//        return submitOrderResult;
-//    }
+    // private MakePaymentResult extractResponseBody(Integer responseCode, String
+    // respString, String hashValue) {
+    // MakePaymentResult submitOrderResult = new MakePaymentResult();
+    // try {
+    // System.out.println("Response : " + respString);
+    // if (responseCode.equals(200)) {
+    // PaymentOrder orderCreated = new PaymentOrder();
+    // orderCreated.setSpErrorCode(responseCode.toString());
+    // orderCreated.setCreatedDate(DateTimeUtil.currentTimestamp());
+    // submitOrderResult.orderCreated = orderCreated;
+    // submitOrderResult.isSuccess = true;
+    // submitOrderResult.providerId = this.providerId;
+    // submitOrderResult.paymentLink = respString;
+    // submitOrderResult.hash = hashValue;
+    // submitOrderResult.sysTransactionId = systemTransactionId;
+    // } else {
+    // submitOrderResult.isSuccess = false;
+    // }
+    // } catch (Exception ex) {
+    // LogUtil.error(logprefix, location, "Error extracting result", "", ex);
+    // }
+    // return submitOrderResult;
+    // }
 }
-

@@ -1,14 +1,25 @@
 package com.kalsym.paymentservice.provider.GoPayFast;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.kalsym.paymentservice.models.daos.PaymentOrder;
 import com.kalsym.paymentservice.models.daos.PaymentRequest;
 import com.kalsym.paymentservice.provider.MakePaymentResult;
 import com.kalsym.paymentservice.provider.ProcessResult;
-import com.kalsym.paymentservice.provider.SenangPay.HttpConnection;
-import com.kalsym.paymentservice.provider.SenangPay.HttpResult;
+
 import com.kalsym.paymentservice.provider.SyncDispatcher;
 import com.kalsym.paymentservice.utils.DateTimeUtil;
 import com.kalsym.paymentservice.utils.LogUtil;
+
+import org.springframework.http.HttpEntity;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
+
+import org.springframework.http.HttpMethod;
+
+import org.springframework.http.HttpHeaders;
 
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
@@ -32,8 +43,8 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
     private String location = "GoPayFastPaymentLink";
     private String host;
 
-
-    public GoPayFastPaymentLink(CountDownLatch latch, HashMap config, PaymentRequest order, String systemTransactionId, Integer providerId) {
+    public GoPayFastPaymentLink(CountDownLatch latch, HashMap config, PaymentRequest order, String systemTransactionId,
+            Integer providerId) {
         super(latch);
         logprefix = systemTransactionId;
         this.systemTransactionId = systemTransactionId;
@@ -53,7 +64,6 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
 
     }
 
-
     @Override
     public ProcessResult process() {
         LogUtil.info(logprefix, location, "Process start", "");
@@ -61,45 +71,21 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
         HashMap httpHeader = new HashMap();
         httpHeader.put("Host", host);
         String msg = "Payment was successful";
-//        String parameters = generatelink_KalsymKey + systemTransactionId + String.format("%.2f", order.getPaymentAmount()) + order.getTransactionId();
-//        String hashV = "?email=" + order.getEmail().replaceAll("@", "%40") + "&amountpaid=" + order.getPaymentAmount() + "&txn_status=" + 1 + "&tx_msg=" + msg.replaceAll(" ", "+") + "&order_id=" + order.getTransactionId() + "hashed_value=[HASH]";
-//        LogUtil.info(logprefix, location, "parameters: ", parameters);
-//
-//        //parameter = key+storeName+totalAmount+sysmtransactionID
-//        //hash(key,parameter) //HmacSHA256
-//
-//        String reqUrl = this.generatelink_url + this.merchantId;
-//        String token = getToken();
-//        LogUtil.info(logprefix, location, "Order Id : ", order.getTransactionId());
-//        LogUtil.info(logprefix, location, "Hash value", token);
-//
-//        LogUtil.info(logprefix, location, "String url: ", reqUrl);
-////        response.returnObject = extractResponseBody(this.generatelink_url + this.merchantId, hashValue);
-//        String url = this.generatelink_url + this.merchantId;
-//        System.out.println("String url: " + url);
-////        HttpResult httpResult = HttpConnection.SendHttpsRequest("POST", this.systemTransactionId, reqUrl, httpHeader, null, this.connectTimeout, this.waitTimeout);
-//        if (httpResult.resultCode == 0) {
-//            LogUtil.info(logprefix, location, "Request successful", "");
-//            response.resultCode = 0;
-//            response.returnObject = extractResponseBody(httpResult.httpResponseCode, this.generatelink_url + this.merchantId, hashValue);
-//        } else {
-//            LogUtil.info(logprefix, location, "Request failed", "");
-//            response.resultCode = -1;
-//        }
-//        LogUtil.info(logprefix, location, "Process finish", "");
 
-        String reqUrl = this.generatelink_url ;
-//        String hashValue = hash(parameters, generatelink_KalsymKey);
+        String token = getToken();
+
+        String reqUrl = this.generatelink_url;
+        // String hashValue = hash(parameters, generatelink_KalsymKey);
         LogUtil.info(logprefix, location, "Order Id : ", order.getTransactionId());
 
         LogUtil.info(logprefix, location, "String url: ", reqUrl);
 
-        response.returnObject = extractResponseBody(this.generatelink_url, "");
+        response.returnObject = extractResponseBody(this.generatelink_url, "",token);
 
         return response;
     }
 
-    private MakePaymentResult extractResponseBody(String respString, String hashValue) {
+    private MakePaymentResult extractResponseBody(String respString, String hashValue, String token) {
         MakePaymentResult submitOrderResult = new MakePaymentResult();
         try {
             System.out.println("Response : " + respString);
@@ -111,6 +97,7 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
             submitOrderResult.paymentLink = respString;
             submitOrderResult.hash = hashValue;
             submitOrderResult.sysTransactionId = systemTransactionId;
+            submitOrderResult.token = token;
         } catch (Exception ex) {
             LogUtil.error(logprefix, location, "Error extracting result", "", ex);
         }
@@ -118,21 +105,40 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
     }
 
     private String getToken() {
+        String token = "";
 
-//        HashMap httpHeader = new HashMap();
-//        httpHeader.put("Host", host);
-//        httpHeader.put("Content-type", "application/x-www-form-urlencoded");
-//
-//        HttpResult httpResult = HttpConnection.SendHttpsRequest("POST", this.systemTransactionId, tokenUrl, httpHeader, null, this.connectTimeout, this.waitTimeout);
-//        if (httpResult.resultCode == 0) {
-//            LogUtil.info(logprefix, location, "Request successful", "");
-//            response.resultCode = 0;
-//            response.returnObject = extractResponseBody(httpResult.httpResponseCode, this.generatelink_url + this.merchantId, hashValue);
-//        } else {
-//            LogUtil.info(logprefix, location, "Request failed", "");
-//            response.resultCode = -1;
-//        }
-        return "";
+        MultiValueMap<String, Object> postParameters = new LinkedMultiValueMap<>();
+        postParameters.add("merchant_id", merchantId);
+        postParameters.add("grant_type", grantType);
+        postParameters.add("secured_key", securedKey);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", "application/x-www-form-urlencoded");
+
+        HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(postParameters, headers);
+
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<String> responses = restTemplate.exchange(tokenUrl, HttpMethod.POST, request, String.class);
+
+            int statusCode = responses.getStatusCode().value();
+            LogUtil.info(logprefix, location, "Responses", responses.getBody());
+            if (statusCode == 200) {
+                LogUtil.info(logprefix, location, "Get Token: " + responses.getBody(), "");
+
+                JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
+                token = jsonResp.get("token").getAsString();
+
+            } else {
+                LogUtil.info(logprefix, location, "Request failed", responses.getBody());
+                token = "";
+            }
+        } catch (Exception exception) {
+            LogUtil.info(logprefix, location, "Exception : ", exception.getMessage());
+            token = "";
+
+        }
+        return token;
     }
 
 }

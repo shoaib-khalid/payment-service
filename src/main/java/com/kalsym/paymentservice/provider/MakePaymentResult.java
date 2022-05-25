@@ -19,4 +19,5 @@ public class MakePaymentResult {
     public boolean isSuccess;
     public String paymentLink;
     public String hash;
+    public String token;
 }
