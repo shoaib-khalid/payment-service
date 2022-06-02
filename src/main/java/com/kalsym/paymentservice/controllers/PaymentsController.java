@@ -315,32 +315,32 @@ public class PaymentsController {
 
     }
 
-    @PostMapping(path = {"/postTransaction"}, name = "post-sp-transaction")
-    public String postTransaction(HttpServletRequest request, @Valid @RequestBody TransactionRequest transaction) {
+    @PostMapping(path = {"/postTransaction"}, name = "post-sp-transaction", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public String postTransaction(HttpServletRequest request, @RequestBody MultiValueMap<String, String> transaction) {
         String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
         HttpReponse response = new HttpReponse(request.getRequestURI());
         String result = "";
 
         MultiValueMap<String, Object> postParameters = new LinkedMultiValueMap<>();
-        postParameters.add("CURRENCY_CODE", transaction.getCurrencyCode());
-        postParameters.add("MERCHANT_ID", transaction.getMerchantId());
-        postParameters.add("MERCHANT_NAME", transaction.getMerchantName());
-        postParameters.add("TOKEN", transaction.getToken());
-        postParameters.add("FAILURE_URL", transaction.getFailureUrl());
-        postParameters.add("SUCCESS_URL", transaction.getSuccessUrl());
-        postParameters.add("CHECKOUT_URL", transaction.getCheckoutUrl());
-        postParameters.add("CUSTOMER_EMAIL_ADDRESS", transaction.getCustomerEmailAdrress());
-        postParameters.add("CUSTOMER_MOBILE_NO", transaction.getCustomerMobileNo());
-        postParameters.add("TXNAMT", transaction.getTxnAmt());
-        postParameters.add("BASKET_ID", transaction.getBasketId());
-        postParameters.add("ORDER_DATE", transaction.getOrderDate());
-        postParameters.add("SIGNATURE", transaction.getSignature());
-        postParameters.add("VERSION", transaction.getVersion());
-        postParameters.add("TXNDESC", transaction.getTxnDesc());
-        postParameters.add("PROCCODE", transaction.getProductCode());
-        postParameters.add("TRAN_TYPE", transaction.getTranType());
-        postParameters.add("STORE_ID", transaction.getStoreId());
+        postParameters.add("CURRENCY_CODE", transaction.get("CURRENCY_CODE"));
+        postParameters.add("MERCHANT_ID", transaction.get("MERCHANT_ID"));
+        postParameters.add("MERCHANT_NAME", transaction.get("MERCHANT_NAME"));
+        postParameters.add("TOKEN", transaction.get("TOKEN"));
+        postParameters.add("FAILURE_URL", transaction.get("FAILURE_URL"));
+        postParameters.add("SUCCESS_URL", transaction.get("SUCCESS_URL"));
+        postParameters.add("CHECKOUT_URL", transaction.get("CHECKOUT_URL"));
+        postParameters.add("CUSTOMER_EMAIL_ADDRESS", transaction.get("CUSTOMER_EMAIL_ADDRESS"));
+        postParameters.add("CUSTOMER_MOBILE_NO", transaction.get("CUSTOMER_MOBILE_NO"));
+        postParameters.add("TXNAMT", transaction.get("TXNAMT"));
+        postParameters.add("BASKET_ID", transaction.get("BASKET_ID"));
+        postParameters.add("ORDER_DATE", transaction.get("ORDER_DATE"));
+        postParameters.add("SIGNATURE", transaction.get("SIGNATURE"));
+        postParameters.add("VERSION", transaction.get("VERSION"));
+        postParameters.add("TXNDESC", transaction.get("TXNDESC"));
+        postParameters.add("PROCCODE", transaction.get("PROCCODE"));
+        postParameters.add("TRAN_TYPE", transaction.get("TRAN_TYPE"));
+        postParameters.add("STORE_ID", transaction.get("STORE_ID"));
 
         System.err.println("POST : " + postParameters);
 
