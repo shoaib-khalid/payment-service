@@ -1,8 +1,11 @@
 package com.kalsym.paymentservice.controllers;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.kalsym.paymentservice.models.HttpReponse;
 import com.kalsym.paymentservice.models.daos.PaymentOrder;
 import com.kalsym.paymentservice.models.daos.PaymentRequest;
+import com.kalsym.paymentservice.models.requestbodies.TransactionRequest;
 import com.kalsym.paymentservice.provider.MakePaymentResult;
 import com.kalsym.paymentservice.provider.ProcessResult;
 import com.kalsym.paymentservice.repositories.*;
@@ -13,9 +16,11 @@ import com.kalsym.paymentservice.utils.DateTimeUtil;
 import com.kalsym.paymentservice.utils.LogUtil;
 import com.kalsym.paymentservice.utils.StringUtility;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
@@ -307,6 +312,64 @@ public class PaymentsController {
             return "<html>\n" + "OK" + "\n" + "</html>";
 
         }
+
+    }
+
+    @PostMapping(path = {"/postTransaction"}, name = "post-sp-transaction")
+    public String postTransaction(HttpServletRequest request, @Valid @RequestBody TransactionRequest transaction) {
+        String logprefix = request.getRequestURI() + " ";
+        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
+        HttpReponse response = new HttpReponse(request.getRequestURI());
+        String result = "";
+
+        MultiValueMap<String, Object> postParameters = new LinkedMultiValueMap<>();
+        postParameters.add("CURRENCY_CODE", transaction.getCurrencyCode());
+        postParameters.add("MERCHANT_ID", transaction.getMerchantId());
+        postParameters.add("MERCHANT_NAME", transaction.getMerchantName());
+        postParameters.add("TOKEN", transaction.getToken());
+        postParameters.add("FAILURE_URL", transaction.getFailureUrl());
+        postParameters.add("SUCCESS_URL", transaction.getSuccessUrl());
+        postParameters.add("CHECKOUT_URL", transaction.getCheckoutUrl());
+        postParameters.add("CUSTOMER_EMAIL_ADDRESS", transaction.getCustomerEmailAdrress());
+        postParameters.add("CUSTOMER_MOBILE_NO", transaction.getCustomerMobileNo());
+        postParameters.add("TXNAMT", transaction.getTxnAmt());
+        postParameters.add("BASKET_ID", transaction.getBasketId());
+        postParameters.add("ORDER_DATE", transaction.getOrderDate());
+        postParameters.add("SIGNATURE", transaction.getSignature());
+        postParameters.add("VERSION", transaction.getVersion());
+        postParameters.add("TXNDESC", transaction.getTxnDesc());
+        postParameters.add("PROCCODE", transaction.getProductCode());
+        postParameters.add("TRAN_TYPE", transaction.getTranType());
+        postParameters.add("STORE_ID", transaction.getStoreId());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", "application/x-www-form-urlencoded");
+
+        HttpEntity<MultiValueMap<String, Object>> res = new HttpEntity<>(postParameters, headers);
+        String getPaymentLnk = "https://ipg1.apps.net.pk/Ecommerce/api/Transaction/PostTransaction";
+
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<String> responses = restTemplate.exchange(getPaymentLnk, HttpMethod.POST, res, String.class);
+
+            int statusCode = responses.getStatusCode().value();
+            LogUtil.info(logprefix, location, "Responses", responses.getBody());
+            if (statusCode == 200) {
+                LogUtil.info(logprefix, location, "Get Token: " + responses.getBody(), "");
+
+                JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
+//                token = jsonResp.get("token").getAsString();
+                result = jsonResp.toString();
+
+            } else {
+                LogUtil.info(logprefix, location, "Request failed", responses.getBody());
+                result = "";
+            }
+        } catch (Exception exception) {
+            LogUtil.info(logprefix, location, "Exception : ", exception.getMessage());
+            result = exception.getMessage();
+        }
+        return result;
 
     }
 
