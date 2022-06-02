@@ -342,6 +342,8 @@ public class PaymentsController {
         postParameters.add("TRAN_TYPE", transaction.getTranType());
         postParameters.add("STORE_ID", transaction.getStoreId());
 
+        System.err.println("POST : " + postParameters);
+
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/x-www-form-urlencoded");
 
@@ -359,11 +361,13 @@ public class PaymentsController {
 
                 JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
 //                token = jsonResp.get("token").getAsString();
-                result = jsonResp.toString();
+                return responses.getBody();
 
             } else {
                 LogUtil.info(logprefix, location, "Request failed", responses.getBody());
                 result = "";
+                return responses.getBody();
+
             }
         } catch (Exception exception) {
             LogUtil.info(logprefix, location, "Exception : ", exception.getMessage());
