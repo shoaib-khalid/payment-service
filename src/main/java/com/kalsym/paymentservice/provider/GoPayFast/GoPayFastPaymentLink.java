@@ -44,7 +44,7 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
     private String host;
 
     public GoPayFastPaymentLink(CountDownLatch latch, HashMap config, PaymentRequest order, String systemTransactionId,
-            Integer providerId) {
+                                Integer providerId) {
         super(latch);
         logprefix = systemTransactionId;
         this.systemTransactionId = systemTransactionId;
@@ -80,7 +80,7 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
 
         LogUtil.info(logprefix, location, "String url: ", reqUrl);
 
-        response.returnObject = extractResponseBody(this.generatelink_url, "",token);
+        response.returnObject = extractResponseBody(this.generatelink_url, "", token);
 
         return response;
     }
@@ -106,11 +106,13 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
 
     private String getToken() {
         String token = "";
+        String requestUrl = "https://ipguat.apps.net.pk/Ecommerce/api/Transaction/GetAccessToken";
 
         MultiValueMap<String, Object> postParameters = new LinkedMultiValueMap<>();
-        postParameters.add("merchant_id", merchantId);
-        postParameters.add("grant_type", grantType);
-        postParameters.add("secured_key", securedKey);
+        postParameters.add("MERCHANT_ID", merchantId);
+        postParameters.add("BASKET_ID", order.getSystemTransactionId());
+        postParameters.add("TXNAMT", order.getPaymentAmount());
+        postParameters.add("SECURED_KEY", securedKey);
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/x-www-form-urlencoded");
@@ -127,7 +129,7 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
                 LogUtil.info(logprefix, location, "Get Token: " + responses.getBody(), "");
 
                 JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
-                token = jsonResp.get("token").getAsString();
+                token = jsonResp.get("ACCESS_TOKEN").getAsString();
 
             } else {
                 LogUtil.info(logprefix, location, "Request failed", responses.getBody());

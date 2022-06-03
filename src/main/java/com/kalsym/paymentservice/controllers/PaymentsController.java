@@ -6,6 +6,8 @@ import com.kalsym.paymentservice.models.HttpReponse;
 import com.kalsym.paymentservice.models.daos.PaymentOrder;
 import com.kalsym.paymentservice.models.daos.PaymentRequest;
 import com.kalsym.paymentservice.models.requestbodies.TransactionRequest;
+import com.kalsym.paymentservice.provider.Ezlink.HttpResult;
+import com.kalsym.paymentservice.provider.Ezlink.HttpsPostConn;
 import com.kalsym.paymentservice.provider.MakePaymentResult;
 import com.kalsym.paymentservice.provider.ProcessResult;
 import com.kalsym.paymentservice.repositories.*;
@@ -26,6 +28,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.math.BigInteger;
 import java.security.MessageDigest;
+import java.util.HashMap;
 
 /**
  * @author Sarosh
@@ -346,113 +349,53 @@ public class PaymentsController {
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/x-www-form-urlencoded");
+        headers.add("Cookie", "production_payfast=wz3xqywlvj5pvuxjycaasp5q");
+        headers.add("Host", "ipguat.apps.net.pk");
+
 
         HttpEntity<MultiValueMap<String, Object>> res = new HttpEntity<>(postParameters, headers);
-        String getPaymentLnk = "https://ipg1.apps.net.pk/Ecommerce/api/Transaction/PostTransaction";
+        String getPaymentLnk = "https://ipguat.apps.net.pk/Ecommerce/api/Transaction/PostTransaction";
+
+        HashMap httpHeader = new HashMap();
+        httpHeader.put("Content-Type", "application/x-www-form-urlencoded");
 
         try {
             RestTemplate restTemplate = new RestTemplate();
             ResponseEntity<String> responses = restTemplate.exchange(getPaymentLnk, HttpMethod.POST, res, String.class);
+//            HttpResult httpResult = HttpsPostConn.SendHttpsRequest("POST", String.valueOf(transaction.get("BASKET_ID")), getPaymentLnk, httpHeader,postParameters.toString(), 10000, 1500);
 
             int statusCode = responses.getStatusCode().value();
             LogUtil.info(logprefix, location, "Responses", responses.getBody());
             if (statusCode == 200) {
                 LogUtil.info(logprefix, location, "Get Token: " + responses.getBody(), "");
 
-                JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
+//                JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
 //                token = jsonResp.get("token").getAsString();
+                System.err.println("Header" + responses.getHeaders());
                 return responses.getBody();
 
             } else {
+
                 LogUtil.info(logprefix, location, "Request failed", responses.getBody());
                 result = "";
+                System.err.println("Header" + responses.getHeaders());
+
                 return responses.getBody();
 
             }
+//            if (httpResult.resultCode==0) {
+//                LogUtil.info(logprefix, location, "Request successful", httpResult.responseString);
+//
+//            } else {
+//                LogUtil.info(logprefix, location, "Request failed", "");
+//            }
         } catch (Exception exception) {
             LogUtil.info(logprefix, location, "Exception : ", exception.getMessage());
             result = exception.getMessage();
         }
-        return result;
 
+        return null;
     }
-
-/*    @GetMapping(path = {"/return"}, name = "payments-sp-callback-senangPay")
-    public ResponseEntity<HttpReponse> returnSP(HttpServletRequest request,
-                                                @RequestParam(required = false, defaultValue = "") String name,
-                                                @RequestParam(required = false, defaultValue = "") String email,
-                                                @RequestParam(required = false, defaultValue = "") String phone,
-
-                                                @RequestParam(required = false, defaultValue = "") String amount,
-                                                @RequestParam(required = false, defaultValue = "") String hash,
-                                                @RequestParam(required = false, defaultValue = "") int status_id,
-                                                @RequestParam(required = false, defaultValue = "") String order_id,
-                                                @RequestParam(required = false, defaultValue = "") String transaction_id,
-                                                @RequestParam(required = false, defaultValue = "") String msg) {
-        String logprefix = request.getRequestURI() + " ";
-        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
-        HttpReponse response = new HttpReponse(request.getRequestURI());
-
-        LogUtil.info(logprefix, location, "Receive returnUrl ", "Name: " + name + " email: " + email + " phone: " + phone + " amount:" + amount + " hash :" + hash + " orderId: " + order_id + " transactionId: " + transaction_id + " msg: " + msg);
-        // using for-each loop for iteration over Map.entrySet()
-        ///Gson gson = new Gson();
-        ///JsonObject requestBodyJson = gson.toJsonTree(requestBody).getAsJsonObject();
-//        for (Map.Entry<String, String> entry : requestBody.entrySet()) {
-//            LogUtil.info(logprefix, location, "Key = " + entry.getKey() + ", Value = " + entry.getValue(), "");
-//        }
-        //generate transaction id
-//        OrderConfirm res = paymentService.updateStatus(order_id, "SUCCESS", "KUMAR", msg);
-//        System.out.println("Return response " + res.toString());
-        String systemTransactionId = StringUtility.CreateRefID("CB");
-        String IP = request.getRemoteAddr();
-        if (status_id == 1) {
-            OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_CONFIRMED", "", msg);
-            StoreDetails stores = paymentService.getStoreDeliveryDetails(res.getStoreId());
-
-
-            String spErrorCode = String.valueOf(status_id);
-            String statusDescription = msg;
-            String paymentTransactionId = transaction_id;
-            String clientTransactionId = order_id;
-            String status = "SUCCESS";
-            PaymentOrder deliveryOrder = paymentOrdersRepository.findByClientTransactionIdAndStatus(order_id, null);
-            if (deliveryOrder != null) {
-                clientTransactionId = deliveryOrder.getClientTransactionId();
-                LogUtil.info(systemTransactionId, location, "DeliveryOrder found. Update status and updated datetime", "");
-                deliveryOrder.setStatus(status);
-                deliveryOrder.setUpdatedDate(DateTimeUtil.currentTimestamp());
-                deliveryOrder.setSpErrorCode(spErrorCode);
-                deliveryOrder.setSpOrderId(transaction_id);
-                deliveryOrder.setStatusDescription(statusDescription);
-                paymentOrdersRepository.save(deliveryOrder);
-            } else {
-                LogUtil.info(systemTransactionId, location, "DeliveryOrder not found for paymentTransactionId:" + paymentTransactionId, "");
-            }
-
-            try {
-                //send redirect to Thank You page
-                String url = "https://" + stores.getDomain() + ".symplified.store/thankyou?txid=" + paymentTransactionId + "&refId=" + clientTransactionId + "&status=" + status;
-                LogUtil.info(systemTransactionId, location, "Redirect to url:" + url + " with " + HttpStatus.SEE_OTHER, "");
-                URI uri = new URI(url);
-                HttpHeaders httpHeaders = new HttpHeaders();
-                httpHeaders.setLocation(uri);
-                //use TEMPORARY_REDIRECT to forward request from payment gateway to frond-end
-                //return new ResponseEntity<>(httpHeaders, HttpStatus.TEMPORARY_REDIRECT);
-                return new ResponseEntity<>(httpHeaders, HttpStatus.SEE_OTHER);
-            } catch (Exception ex) {
-                LogUtil.error(systemTransactionId, location, "Redirecting error", "", ex);
-                response.setSuccessStatus(HttpStatus.OK);
-//                response.setData(processResult.returnObject);
-                LogUtil.info(systemTransactionId, location, "Response with " + HttpStatus.OK, "");
-                return ResponseEntity.status(HttpStatus.OK).body(response);
-            }
-        } else {
-            OrderConfirm res = paymentService.updateStatus(order_id, "FAILED", "", msg);
-
-            //fail to get price
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
-    }*/
 
 
     public String getMd5(String data) {
