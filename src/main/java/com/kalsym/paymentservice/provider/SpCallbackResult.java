@@ -16,4 +16,8 @@ public class SpCallbackResult {
     public String status;
     public String spErrorCode;
     public String paymentTransactionId;
+    public int statusId;
+    public String orderId;
+    public String paymentChanel;
+
 }

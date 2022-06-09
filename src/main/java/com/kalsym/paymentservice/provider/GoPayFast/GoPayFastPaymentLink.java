@@ -105,7 +105,7 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
     }
 
     private String getToken() {
-        String token = "";
+        String token = "";//https://apipxyuat.apps.net.pk:8443/api/token
         String requestUrl = "https://ipguat.apps.net.pk/Ecommerce/api/Transaction/GetAccessToken";
 
         MultiValueMap<String, Object> postParameters = new LinkedMultiValueMap<>();
