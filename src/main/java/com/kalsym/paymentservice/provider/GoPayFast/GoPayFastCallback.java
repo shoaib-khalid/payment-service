@@ -54,43 +54,61 @@ public class GoPayFastCallback extends SyncDispatcher {
     public ProcessResult process() {
         LogUtil.info(logprefix, location, "Process start", "");
         ProcessResult response = new ProcessResult();
+        SpCallbackResult result = new SpCallbackResult();
+
 
         LogUtil.info(logprefix, location, "Response Body", this.jsonBody.toString());
         String errCode = this.jsonBody.get("err_code").getAsString();
         String basketID = this.jsonBody.get("basket_id").getAsString();
-        String validateHash = this.jsonBody.get("validation_hash").getAsString();
-        String beforeHash = basketID + "|" + this.securedKey + "|" + this.merchantId + "|" + errCode;
-        String hash = "";
-        try {
+        if (errCode.equals("000")) {
+            String validateHash = this.jsonBody.get("validation_hash").getAsString();
+            String beforeHash = basketID + "|" + this.securedKey + "|" + this.merchantId + "|" + errCode;
+            String hash = "";
+            try {
 
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] encodedhash = digest.digest(
-                    beforeHash.getBytes(StandardCharsets.UTF_8));
-            hash = bytesToHex(encodedhash);
-            LogUtil.info(logprefix, location, "System Generate Hash", hash);
-        } catch (Exception ex) {
-            System.err.println("LOCAL Exception : " + ex.getMessage());
+                MessageDigest digest = MessageDigest.getInstance("SHA-256");
+                byte[] encodedhash = digest.digest(
+                        beforeHash.getBytes(StandardCharsets.UTF_8));
+                hash = bytesToHex(encodedhash);
+                LogUtil.info(logprefix, location, "System Generate Hash", hash);
+            } catch (Exception ex) {
+                System.err.println("LOCAL Exception : " + ex.getMessage());
 
+            }
+
+            if (hash.equals(validateHash)) {
+
+                result.paymentTransactionId = basketID;
+                result.providerId = 3;
+                result.spErrorCode = "0";
+                result.status = "Payment_was_successful";
+                result.orderId = this.jsonBody.get("transaction_id").getAsString();
+                result.statusId = this.jsonBody.get("status_id").getAsInt();
+                result.paymentChanel = this.jsonBody.get("payment_channel").getAsString();
+
+                response.returnObject = result;
+                response.resultCode = 0;
+                response.isSuccess = true;
+                response.resultString = "Payment_was_successful";
+
+
+            } else {
+                result.paymentTransactionId = basketID;
+                result.providerId = 3;
+                result.spErrorCode = "-1";
+                result.status = "Payment_was_failed";
+                result.orderId = this.jsonBody.get("transaction_id").getAsString();
+                result.statusId = this.jsonBody.get("status_id").getAsInt();
+                result.paymentChanel = this.jsonBody.get("payment_channel").getAsString();
+
+                response.returnObject = result;
+                response.resultCode = 0;
+                response.isSuccess = false;
+                response.resultString = "Payment_was_failed";
+
+            }
         }
-        SpCallbackResult result = new SpCallbackResult();
-
-        if (hash.equals(validateHash)) {
-
-            result.paymentTransactionId = basketID;
-            result.providerId = 3;
-            result.spErrorCode = "0";
-            result.status = "Payment_was_successful";
-            result.orderId = this.jsonBody.get("transaction_id").getAsString();
-            result.statusId = this.jsonBody.get("status_id").getAsInt();
-            result.paymentChanel = this.jsonBody.get("payment_channel").getAsString();
-
-            response.returnObject = result;
-            response.resultCode = 0;
-            response.isSuccess = true;
-            response.resultString = "Payment_was_successful";
-
-
-        } else {
+        else{
             result.paymentTransactionId = basketID;
             result.providerId = 3;
             result.spErrorCode = "-1";
@@ -100,11 +118,11 @@ public class GoPayFastCallback extends SyncDispatcher {
             result.paymentChanel = this.jsonBody.get("payment_channel").getAsString();
 
             response.returnObject = result;
-            response.resultCode = -1;
+            response.resultCode = 0;
             response.isSuccess = false;
             response.resultString = "Payment_was_failed";
-
         }
+
 
         return response;
     }

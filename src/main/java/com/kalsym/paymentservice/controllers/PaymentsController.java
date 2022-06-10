@@ -162,25 +162,27 @@ public class PaymentsController {
     //TODO : Proper way callback in testing
     @PostMapping(path = {"/payment-redirect"}, name = "payments-sp-callback")
     public ResponseEntity<HttpReponse> call(HttpServletRequest request,
-                                            @RequestParam("name") String name,
-                                            @RequestParam("email") String email,
-                                            @RequestParam("phone") String phone,
-                                            @RequestParam("transaction_amount") String transaction_amount,
-                                            @RequestParam("status_id") int status_id,
-                                            @RequestParam("order_id") String order_id,
-                                            @RequestParam("transaction_id") String transaction_id,
-                                            @RequestParam("basket_id") String basket_id,
-                                            @RequestParam("Rdv_Message_Key") String Rdv_Message_Key,
-                                            @RequestParam("PaymentType") String PaymentType,
-                                            @RequestParam("PaymentName") String PaymentName,
-                                            @RequestParam("validation_hash") String validation_hash,
-                                            @RequestParam("err_code") String err_code,
-                                            @RequestParam("payment_channel") String payment_channel,
-                                            @RequestParam("msg") String msg) {
+                                            @RequestParam(name = "name", required = false, defaultValue = "") String name,
+                                            @RequestParam(name = "email", required = false, defaultValue = "") String email,
+                                            @RequestParam(name = "phone", required = false, defaultValue = "") String phone,
+                                            @RequestParam(name = "transaction_amount", required = false, defaultValue = "") String transaction_amount,
+                                            @RequestParam(name = "status_id", required = false, defaultValue = "") int status_id,
+                                            @RequestParam(name = "order_id", required = false, defaultValue = "") String order_id,
+                                            @RequestParam(name = "transaction_id", required = false, defaultValue = "") String transaction_id,
+                                            @RequestParam(name = "basket_id", required = false, defaultValue = "") String basket_id,
+                                            @RequestParam(name = "Rdv_Message_Key", required = false, defaultValue = "") String Rdv_Message_Key,
+                                            @RequestParam(name = "PaymentType", required = false, defaultValue = "") String PaymentType,
+                                            @RequestParam(name = "PaymentName", required = false, defaultValue = "") String PaymentName,
+                                            @RequestParam(name = "validation_hash", defaultValue = "") String validation_hash,
+                                            @RequestParam(name = "err_code", required = false) String err_code,
+                                            @RequestParam(name = "order_date", required = false, defaultValue = "") String order_date,
+                                            @RequestParam(name = "payment_channel", required = false, defaultValue = "") String payment_channel,
+                                            @RequestParam(name = "err_msg", required = false, defaultValue = "") String err_msg,
+                                            @RequestParam(name = "msg", required = false, defaultValue = "") String msg) {
         String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
         HttpReponse response = new HttpReponse(request.getRequestURI());
-        System.err.println("NAME " + name);
+        System.err.println("NAME " + validation_hash);
 
         LogUtil.info(logprefix, location, "receive callback from Provider", "");
         //generate transaction id
@@ -190,19 +192,27 @@ public class PaymentsController {
         requestBody.addProperty("name", name);
         requestBody.addProperty("email", email);
         requestBody.addProperty("phone", phone);
-        requestBody.addProperty("transaction_amount", transaction_amount);
         requestBody.addProperty("status_id", String.valueOf(status_id));
         requestBody.addProperty("order_id", order_id);
-        requestBody.addProperty("transaction_id", transaction_id);
         requestBody.addProperty("basket_id", basket_id);
-        requestBody.addProperty("Rdv_Message_Key", Rdv_Message_Key);
-        requestBody.addProperty("PaymentType", PaymentType);
-        requestBody.addProperty("PaymentName", PaymentName);
-        requestBody.addProperty("validation_hash", validation_hash);
-        requestBody.addProperty("err_code", err_code);
-        requestBody.addProperty("msg", msg);
+        requestBody.addProperty("transaction_id", transaction_id);
         requestBody.addProperty("payment_channel", payment_channel);
 
+
+        if (err_code.equals("000")) {
+
+            requestBody.addProperty("transaction_amount", transaction_amount);
+            requestBody.addProperty("Rdv_Message_Key", Rdv_Message_Key);
+            requestBody.addProperty("PaymentType", PaymentType);
+            requestBody.addProperty("PaymentName", PaymentName);
+            requestBody.addProperty("validation_hash", validation_hash);
+            requestBody.addProperty("err_code", err_code);
+            requestBody.addProperty("msg", msg);
+        } else {
+            requestBody.addProperty("err_msg", err_msg);
+            requestBody.addProperty("err_code", err_code);
+            requestBody.addProperty("order_date", order_date);
+        }
 
         PaymentOrder order = paymentOrdersRepository.findBySystemTransactionId(basket_id);
         LogUtil.info(logprefix, location, "IP:" + IP, order.getClientTransactionId());
