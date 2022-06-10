@@ -20,4 +20,5 @@ public class MakePaymentResult {
     public String paymentLink;
     public String hash;
     public String token;
+    public String redirectUrl;
 }

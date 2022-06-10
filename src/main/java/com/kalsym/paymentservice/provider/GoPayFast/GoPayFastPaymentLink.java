@@ -42,6 +42,7 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
     private String logprefix;
     private String location = "GoPayFastPaymentLink";
     private String host;
+    private String paymentRedirectUrl;
 
     public GoPayFastPaymentLink(CountDownLatch latch, HashMap config, PaymentRequest order, String systemTransactionId,
                                 Integer providerId) {
@@ -61,6 +62,7 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
         this.order = order;
         this.sslVersion = (String) config.get("ssl_version");
         this.providerId = providerId;
+        this.paymentRedirectUrl = (String) config.get("paymentRedirectUrl");
 
     }
 
@@ -98,6 +100,7 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
             submitOrderResult.hash = hashValue;
             submitOrderResult.sysTransactionId = systemTransactionId;
             submitOrderResult.token = token;
+            submitOrderResult.redirectUrl = this.paymentRedirectUrl;
         } catch (Exception ex) {
             LogUtil.error(logprefix, location, "Error extracting result", "", ex);
         }
