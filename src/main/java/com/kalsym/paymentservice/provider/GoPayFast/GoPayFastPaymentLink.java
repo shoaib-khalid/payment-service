@@ -21,6 +21,9 @@ import org.springframework.http.HttpMethod;
 
 import org.springframework.http.HttpHeaders;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 
@@ -43,6 +46,9 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
     private String location = "GoPayFastPaymentLink";
     private String host;
     private String paymentRedirectUrl;
+
+    private static final DecimalFormat df = new DecimalFormat("0.00");
+
 
     public GoPayFastPaymentLink(CountDownLatch latch, HashMap config, PaymentRequest order, String systemTransactionId,
                                 Integer providerId) {
@@ -108,14 +114,19 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
     }
 
     private String getToken() {
+
+        df.setRoundingMode(RoundingMode.DOWN);
+
         String token = "";//https://apipxyuat.apps.net.pk:8443/api/token
         String requestUrl = "https://ipguat.apps.net.pk/Ecommerce/api/Transaction/GetAccessToken";
 
         MultiValueMap<String, Object> postParameters = new LinkedMultiValueMap<>();
         postParameters.add("MERCHANT_ID", merchantId);
         postParameters.add("BASKET_ID", order.getSystemTransactionId());
-        postParameters.add("TXNAMT", order.getPaymentAmount());
+        postParameters.add("TXNAMT", df.format(order.getPaymentAmount().doubleValue()));
         postParameters.add("SECURED_KEY", securedKey);
+        LogUtil.info(logprefix, location, "Reqeuest Body : ", postParameters.toString());
+
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/x-www-form-urlencoded");
