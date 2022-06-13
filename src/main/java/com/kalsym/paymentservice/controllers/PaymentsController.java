@@ -160,7 +160,7 @@ public class PaymentsController {
     }*/
 
     //TODO : Proper way callback in testing
-    @PostMapping(path = {"/payment-redirect"}, name = "payments-sp-callback")
+    @GetMapping(path = {"/payment-redirect"}, name = "payments-sp-callback")
     public ResponseEntity<HttpReponse> call(HttpServletRequest request,
                                             @RequestParam(name = "name", required = false, defaultValue = "") String name,
                                             @RequestParam(name = "email", required = false, defaultValue = "") String email,
