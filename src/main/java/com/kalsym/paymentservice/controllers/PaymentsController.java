@@ -189,6 +189,7 @@ public class PaymentsController {
         String systemTransactionId = StringUtility.CreateRefID("CB");
         String IP = request.getRemoteAddr();
         JsonObject requestBody = new JsonObject();
+        System.err.println("Order ID FROM URL " + order_id);
         requestBody.addProperty("name", name);
         requestBody.addProperty("email", email);
         requestBody.addProperty("phone", phone);

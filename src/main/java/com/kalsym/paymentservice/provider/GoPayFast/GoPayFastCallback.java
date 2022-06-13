@@ -75,6 +75,8 @@ public class GoPayFastCallback extends SyncDispatcher {
                 System.err.println("LOCAL Exception : " + ex.getMessage());
 
             }
+            System.err.println("ORDER ID : " + this.jsonBody.get("transaction_id").getAsString() );
+
 
             if (hash.equals(validateHash)) {
 
@@ -82,7 +84,7 @@ public class GoPayFastCallback extends SyncDispatcher {
                 result.providerId = 3;
                 result.spErrorCode = "0";
                 result.status = "Payment_was_successful";
-                result.orderId = this.jsonBody.get("transaction_id").getAsString();
+                result.orderId = this.jsonBody.get("order_id").getAsString();
                 result.statusId = this.jsonBody.get("status_id").getAsInt();
                 result.paymentChanel = this.jsonBody.get("payment_channel").getAsString();
 
@@ -97,7 +99,7 @@ public class GoPayFastCallback extends SyncDispatcher {
                 result.providerId = 3;
                 result.spErrorCode = "-1";
                 result.status = "Payment_was_failed";
-                result.orderId = this.jsonBody.get("transaction_id").getAsString();
+                result.orderId = this.jsonBody.get("order_id").getAsString();
                 result.statusId = this.jsonBody.get("status_id").getAsInt();
                 result.paymentChanel = this.jsonBody.get("payment_channel").getAsString();
 
