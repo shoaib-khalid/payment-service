@@ -1,10 +1,11 @@
 ##############################################################################################
-# **Version v.2.2.3 & 2.2.4 & v.2.2.5| 13-June-2022**
+# **Version v.2.2.3 & 2.2.4 & v.2.2.5 & v.2.2.6 | 13-June-2022**
 ###############################################################################################
 ### Code Changes:
-1. Redirect Store url bug fixed
-2. Change Http Method for payment redirect
-3. Payment Page Bug Fixed
+1. Update order-service Payment Status
+2. Redirect Store url bug fixed
+3. Change Http Method for payment redirect
+4. Payment Page Bug Fixed
 
 
 
