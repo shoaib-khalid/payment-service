@@ -224,9 +224,13 @@ public class PaymentsController {
         LogUtil.info(systemTransactionId, location, "ProcessRequest finish. resultCode:" + processResult.resultCode, "");
 
         if (processResult.resultCode == 0) {
+            try {
 
-            OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_CONFIRMED", "", msg);
+                OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_CONFIRMED", "", msg);
+            } catch (Exception ex) {
+                LogUtil.info(systemTransactionId, location, "Payment Update Failed: ", ex.getMessage());
 
+            }
             //update order status in db
             SpCallbackResult spCallbackResult = (SpCallbackResult) processResult.returnObject;
             String spOrderId = spCallbackResult.orderId;
@@ -267,8 +271,12 @@ public class PaymentsController {
                 return ResponseEntity.status(HttpStatus.OK).body(response);
             }
         } else {
-            OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_FAILED", "", msg);
+            try {
+                OrderConfirm res = paymentService.updateStatus(order_id, "FAILED", "", msg);
+            } catch (Exception ex) {
+                LogUtil.info(systemTransactionId, location, "Payment Update Failed: ", ex.getMessage());
 
+            }
 
             SpCallbackResult spCallbackResult = (SpCallbackResult) processResult.returnObject;
             String spOrderId = spCallbackResult.orderId;
