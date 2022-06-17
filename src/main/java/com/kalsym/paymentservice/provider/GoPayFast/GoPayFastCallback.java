@@ -30,6 +30,7 @@ public class GoPayFastCallback extends SyncDispatcher {
 
     private final String merchantId;
     private final String securedKey;
+    private final String key;
 
     public GoPayFastCallback(CountDownLatch latch, HashMap config, Object jsonBody, String systemTransactionId) {
         super(latch);
@@ -41,6 +42,8 @@ public class GoPayFastCallback extends SyncDispatcher {
         this.merchantId = (String) config.get("merchantId");
         this.securedKey = (String) config.get("securedKey");
         String jsonString = jsonBody.toString();
+        this.key = (String) config.get("key");
+
         LogUtil.info(logprefix, location, "Request Body:" + jsonString, "");
         try {
             this.jsonBody = new Gson().fromJson(jsonString, JsonObject.class);
@@ -75,26 +78,48 @@ public class GoPayFastCallback extends SyncDispatcher {
                 System.err.println("LOCAL Exception : " + ex.getMessage());
 
             }
-            System.err.println("ORDER ID : " + this.jsonBody.get("transaction_id").getAsString() );
+            System.err.println("ORDER ID : " + this.jsonBody.get("transaction_id").getAsString());
 
 
-            if (hash.equals(validateHash)) {
+            String req = merchantId + this.jsonBody.get("order_id").getAsString() + this.jsonBody.get("amount").getAsDouble() + this.jsonBody.get("hashDate").getAsString();
+            String validate = hash(req, key);
 
-                result.paymentTransactionId = basketID;
-                result.providerId = 3;
-                result.spErrorCode = "0";
-                result.status = "Payment_was_successful";
-                result.orderId = this.jsonBody.get("order_id").getAsString();
-                result.statusId = this.jsonBody.get("status_id").getAsInt();
-                result.paymentChanel = this.jsonBody.get("payment_channel").getAsString();
-
-                response.returnObject = result;
-                response.resultCode = 0;
-                response.isSuccess = true;
-                response.resultString = "Payment_was_successful";
+            if (validate.equals(this.jsonBody.get("systemHash").getAsString())) {
 
 
+                if (hash.equals(validateHash)) {
+
+                    result.paymentTransactionId = basketID;
+                    result.providerId = 3;
+                    result.spErrorCode = "0";
+                    result.status = "Payment_was_successful";
+                    result.orderId = this.jsonBody.get("order_id").getAsString();
+                    result.statusId = this.jsonBody.get("status_id").getAsInt();
+                    result.paymentChanel = this.jsonBody.get("payment_channel").getAsString();
+
+                    response.returnObject = result;
+                    response.resultCode = 0;
+                    response.isSuccess = true;
+                    response.resultString = "Payment_was_successful";
+
+
+                } else {
+                    result.paymentTransactionId = basketID;
+                    result.providerId = 3;
+                    result.spErrorCode = "-1";
+                    result.status = "Payment_was_failed";
+                    result.orderId = this.jsonBody.get("order_id").getAsString();
+                    result.statusId = this.jsonBody.get("status_id").getAsInt();
+                    result.paymentChanel = this.jsonBody.get("payment_channel").getAsString();
+
+                    response.returnObject = result;
+                    response.resultCode = 0;
+                    response.isSuccess = false;
+                    response.resultString = "Payment_was_failed";
+
+                }
             } else {
+
                 result.paymentTransactionId = basketID;
                 result.providerId = 3;
                 result.spErrorCode = "-1";
@@ -107,10 +132,8 @@ public class GoPayFastCallback extends SyncDispatcher {
                 response.resultCode = 0;
                 response.isSuccess = false;
                 response.resultString = "Payment_was_failed";
-
             }
-        }
-        else{
+        } else {
             result.paymentTransactionId = basketID;
             result.providerId = 3;
             result.spErrorCode = "-1";
@@ -148,21 +171,21 @@ public class GoPayFastCallback extends SyncDispatcher {
         return submitOrderResult;
     }
 
-//    public String hash(String req, String key) {
-//        byte[] hmacSha256 = null;
-//        System.out.println("hash " + req);
-//
-//        try {
-//            Mac sha256_HMAC = Mac.getInstance("SHA256");
-//            SecretKeySpec secret_key = new SecretKeySpec(key.getBytes("UTF-8"), "SHA256");
-//            sha256_HMAC.init(secret_key);
-//            hmacSha256 = sha256_HMAC.doFinal(req.getBytes("UTF-8"));
-//
-//        } catch (Exception e) {
-//            throw new RuntimeException("Failed to calculate hmac-sha256", e);
-//        }
-//        return Hex.encodeHexString(hmacSha256);
-//    }
+    public String hash(String req, String key) {
+        byte[] hmacSha256 = null;
+        System.out.println("hash " + req);
+
+        try {
+            Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secret_key = new SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA256");
+            sha256_HMAC.init(secret_key);
+            hmacSha256 = sha256_HMAC.doFinal(req.getBytes("UTF-8"));
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to calculate hmac-sha256", e);
+        }
+        return Hex.encodeHexString(hmacSha256);
+    }
 
 
     private static String bytesToHex(byte[] hash) {

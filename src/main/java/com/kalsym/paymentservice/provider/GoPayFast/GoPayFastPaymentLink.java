@@ -11,6 +11,7 @@ import com.kalsym.paymentservice.provider.SyncDispatcher;
 import com.kalsym.paymentservice.utils.DateTimeUtil;
 import com.kalsym.paymentservice.utils.LogUtil;
 
+import org.apache.commons.codec.binary.Hex;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
@@ -21,9 +22,12 @@ import org.springframework.http.HttpMethod;
 
 import org.springframework.http.HttpHeaders;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 
@@ -46,6 +50,7 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
     private String location = "GoPayFastPaymentLink";
     private String host;
     private String paymentRedirectUrl;
+    private String key;
 
     private static final DecimalFormat df = new DecimalFormat("0.00");
 
@@ -69,6 +74,7 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
         this.sslVersion = (String) config.get("ssl_version");
         this.providerId = providerId;
         this.paymentRedirectUrl = (String) config.get("paymentRedirectUrl");
+        this.key = (String) config.get("key");
 
     }
 
@@ -87,13 +93,17 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
         LogUtil.info(logprefix, location, "Order Id : ", order.getTransactionId());
 
         LogUtil.info(logprefix, location, "String url: ", reqUrl);
+        //merchantid , tranasactionid, amount, datetime
+        String date = new Date().toString();
+        String req = merchantId + order.getTransactionId() + order.getPaymentAmount() + date;
+        String hash = hash(req, key);
 
-        response.returnObject = extractResponseBody(this.generatelink_url, "", token);
+        response.returnObject = extractResponseBody(this.generatelink_url, hash, token, date);
 
         return response;
     }
 
-    private MakePaymentResult extractResponseBody(String respString, String hashValue, String token) {
+    private MakePaymentResult extractResponseBody(String respString, String hashValue, String token,String date) {
         MakePaymentResult submitOrderResult = new MakePaymentResult();
         try {
             System.out.println("Response : " + respString);
@@ -107,6 +117,7 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
             submitOrderResult.sysTransactionId = systemTransactionId;
             submitOrderResult.token = token;
             submitOrderResult.redirectUrl = this.paymentRedirectUrl;
+            submitOrderResult.hashDate = date;
         } catch (Exception ex) {
             LogUtil.error(logprefix, location, "Error extracting result", "", ex);
         }
@@ -155,6 +166,22 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
 
         }
         return token;
+    }
+
+    public String hash(String req, String key) {
+        byte[] hmacSha256 = null;
+        System.out.println("hash " + req);
+
+        try {
+            Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secret_key = new SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA256");
+            sha256_HMAC.init(secret_key);
+            hmacSha256 = sha256_HMAC.doFinal(req.getBytes("UTF-8"));
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to calculate hmac-sha256", e);
+        }
+        return Hex.encodeHexString(hmacSha256);
     }
 
 }

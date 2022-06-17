@@ -42,6 +42,11 @@ public class PaymentOrder {
     String updatedDate;
     String paymentChannel;
 
+    String hash;
+    String hashDate;
+
+    Double paymentAmount;
+
     @Override
     public String toString() {
         return "PaymentOrder{" +

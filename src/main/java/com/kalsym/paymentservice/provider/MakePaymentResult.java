@@ -21,4 +21,6 @@ public class MakePaymentResult {
     public String hash;
     public String token;
     public String redirectUrl;
+
+    public String hashDate;
 }

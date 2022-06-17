@@ -110,6 +110,9 @@ public class PaymentsController {
             paymentOrder.setCreatedDate(orderCreated.getCreatedDate());
             paymentOrder.setSpId(paymentOrderResult.providerId);
 
+            paymentOrder.setHash(paymentOrderResult.hash);
+            paymentOrder.setHashDate(paymentOrderResult.hashDate);
+            paymentOrder.setPaymentAmount(paymentRequest.getPaymentAmount());
 
             LogUtil.info(systemTransactionId, location, "PaymentOrder ", paymentOrder.toString());
 
@@ -125,40 +128,6 @@ public class PaymentsController {
         }
     }
 
-
-/*    @RequestMapping(method = RequestMethod.GET, value = "/querypayment/{payment-id}", name = "payments-query-payment")
-    public ResponseEntity<HttpReponse> queryPayment(HttpServletRequest request,
-            @PathVariable("payment-id") String orderId) {
-        String logprefix = request.getRequestURI() + " ";
-        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
-        HttpReponse response = new HttpReponse(request.getRequestURI());
-
-        LogUtil.info(logprefix, location, "", "");
-
-        //generate transaction id
-        String systemTransactionId = StringUtility.CreateRefID("DL");
-        Optional<PaymentOrder> orderDetails = paymentOrdersRepository.findById(orderId);
-        if (orderDetails.isPresent()) {
-            ProcessRequest process = new ProcessRequest(systemTransactionId, orderDetails.get(), providerRatePlanRepository, providerConfigurationRepository, providerRepository);
-            ProcessResult processResult = process.QueryPayment();
-            LogUtil.info(systemTransactionId, location, "ProcessRequest finish. resultCode:"+processResult.resultCode, "");
-
-            if (processResult.resultCode==0) {
-                //successfully get price from provider
-                response.setSuccessStatus(HttpStatus.OK);
-                response.setData(processResult.returnObject);
-                LogUtil.info(systemTransactionId, location, "Response with "+HttpStatus.OK, "");
-                return ResponseEntity.status(HttpStatus.OK).body(response);
-            } else {
-                //fail to get price
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-            }
-        } else {
-            LogUtil.info(systemTransactionId, location, "DeliveyOrder not found for orderId:"+orderId, "");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-        }
-    }*/
-
     //TODO : Proper way callback in testing
     @GetMapping(path = {"/payment-redirect"}, name = "payments-sp-callback")
     public ResponseEntity<HttpReponse> call(HttpServletRequest request,
@@ -169,6 +138,7 @@ public class PaymentsController {
                                             @RequestParam(name = "status_id", required = false, defaultValue = "") int status_id,
                                             @RequestParam(name = "order_id", required = false, defaultValue = "") String order_id,
                                             @RequestParam(name = "transaction_id", required = false, defaultValue = "") String transaction_id,
+                                            @RequestParam(name = "hash", required = false, defaultValue = "") String hash,
                                             @RequestParam(name = "basket_id", required = false, defaultValue = "") String basket_id,
                                             @RequestParam(name = "Rdv_Message_Key", required = false, defaultValue = "") String Rdv_Message_Key,
                                             @RequestParam(name = "PaymentType", required = false, defaultValue = "") String PaymentType,
@@ -179,6 +149,7 @@ public class PaymentsController {
                                             @RequestParam(name = "payment_channel", required = false, defaultValue = "") String payment_channel,
                                             @RequestParam(name = "err_msg", required = false, defaultValue = "") String err_msg,
                                             @RequestParam(name = "msg", required = false, defaultValue = "") String msg) {
+
         String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
         HttpReponse response = new HttpReponse(request.getRequestURI());
@@ -188,6 +159,10 @@ public class PaymentsController {
         //generate transaction id
         String systemTransactionId = StringUtility.CreateRefID("CB");
         String IP = request.getRemoteAddr();
+
+        PaymentOrder order = paymentOrdersRepository.findBySystemTransactionId(basket_id);
+
+
         JsonObject requestBody = new JsonObject();
         System.err.println("Order ID FROM URL " + order_id);
         requestBody.addProperty("name", name);
@@ -201,7 +176,6 @@ public class PaymentsController {
 
 
         if (err_code.equals("000")) {
-
             requestBody.addProperty("transaction_amount", transaction_amount);
             requestBody.addProperty("Rdv_Message_Key", Rdv_Message_Key);
             requestBody.addProperty("PaymentType", PaymentType);
@@ -209,13 +183,16 @@ public class PaymentsController {
             requestBody.addProperty("validation_hash", validation_hash);
             requestBody.addProperty("err_code", err_code);
             requestBody.addProperty("msg", msg);
+            requestBody.addProperty("hash", hash);
+            requestBody.addProperty("hashDate", order.getHashDate());
+            requestBody.addProperty("systemHash", order.getHash());
+            requestBody.addProperty("amount", order.getPaymentAmount());
         } else {
             requestBody.addProperty("err_msg", err_msg);
             requestBody.addProperty("err_code", err_code);
             requestBody.addProperty("order_date", order_date);
         }
 
-        PaymentOrder order = paymentOrdersRepository.findBySystemTransactionId(basket_id);
         LogUtil.info(logprefix, location, "IP:" + IP, order.getClientTransactionId());
         LogUtil.info(logprefix, location, "IP:" + IP, order.getClientTransactionId());
         LogUtil.info(logprefix, location, "IP:" + IP, providerIpRepository.toString());
@@ -395,104 +372,6 @@ public class PaymentsController {
         }
 
     }
-
-    @PostMapping(path = {"/postTransaction"}, name = "post-sp-transaction", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-    public Response postTransaction(HttpServletRequest
-                                            request, @RequestBody MultiValueMap<String, String> transaction) throws IOException {
-        String logprefix = request.getRequestURI() + " ";
-        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
-        HttpReponse response = new HttpReponse(request.getRequestURI());
-        String result = "";
-
-        MultiValueMap<String, Object> postParameters = new LinkedMultiValueMap<>();
-        postParameters.add("CURRENCY_CODE", transaction.get("CURRENCY_CODE"));
-        postParameters.add("MERCHANT_ID", transaction.get("MERCHANT_ID"));
-        postParameters.add("MERCHANT_NAME", transaction.get("MERCHANT_NAME"));
-        postParameters.add("TOKEN", transaction.get("TOKEN"));
-        postParameters.add("FAILURE_URL", transaction.get("FAILURE_URL"));
-        postParameters.add("SUCCESS_URL", transaction.get("SUCCESS_URL"));
-        postParameters.add("CHECKOUT_URL", transaction.get("CHECKOUT_URL"));
-        postParameters.add("CUSTOMER_EMAIL_ADDRESS", transaction.get("CUSTOMER_EMAIL_ADDRESS"));
-        postParameters.add("CUSTOMER_MOBILE_NO", transaction.get("CUSTOMER_MOBILE_NO"));
-        postParameters.add("TXNAMT", transaction.get("TXNAMT"));
-        postParameters.add("BASKET_ID", transaction.get("BASKET_ID"));
-        postParameters.add("ORDER_DATE", transaction.get("ORDER_DATE"));
-        postParameters.add("SIGNATURE", transaction.get("SIGNATURE"));
-        postParameters.add("VERSION", transaction.get("VERSION"));
-        postParameters.add("TXNDESC", transaction.get("TXNDESC"));
-        postParameters.add("PROCCODE", transaction.get("PROCCODE"));
-        postParameters.add("TRAN_TYPE", transaction.get("TRAN_TYPE"));
-        postParameters.add("STORE_ID", transaction.get("STORE_ID"));
-
-        System.err.println("POST : " + postParameters);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Type", "application/x-www-form-urlencoded");
-        headers.add("Cookie", "production_payfast=wz3xqywlvj5pvuxjycaasp5q");
-        headers.add("Host", "ipguat.apps.net.pk");
-
-
-        HttpEntity<MultiValueMap<String, Object>> res = new HttpEntity<>(postParameters, headers);
-        String getPaymentLnk = "https://ipguat.apps.net.pk/Ecommerce/api/Transaction/PostTransaction";
-
-        HashMap httpHeader = new HashMap();
-        httpHeader.put("Content-Type", "application/x-www-form-urlencoded");
-
-        okhttp3.MediaType mediaType = okhttp3.MediaType.parse("application/x-www-form-urlencoded");
-        okhttp3.RequestBody body = okhttp3.RequestBody.create(mediaType, "CURRENCY_CODE=PKR&MERCHANT_ID=13464&MERCHANT_NAME=EasyDukan%20Pvt%20Ltd&TOKEN=xIWTFj_5h9swoeopbKHlylWtSqukq6o4rePqQDw0mB0&SUCCESS_URL=https://dev-pk.symplified.ai/payment-redirect?name=Irsakumar%26email=irasakumar41@gmail.com%26phone=920192802728%26amount=227.88%26hash=%26status_id=1%26order_id=test123%26transaction_id=20220602052018%26msg=Payment_was_successful%26payment_channel=fastpay&FAILURE_URL=https://dev-pk.symplified.ai/payment-redirect?name=Irsakumar%26email=irasakumar41@gmail.com%26phone=920192802728%26amount=227.88%26hash=%26status_id=0%26order_id=test123%26transaction_id=20220602052018%26msg=Payment_was_failed%26payment_channel=fastpay&CHECKOUT_URL=awan-tech.dev-pk.symplified.ai/checkout&CUSTOMER_EMAIL_ADDRESS=irasakumar41@gmail.com&CUSTOMER_MOBILE_NO=920192802728&TXNAMT=762.6&BASKET_ID=PY030622094111dbb0&ORDER_DATE=2022-06-03%2005:20:18&SIGNATURE=SOME-RANDOM-STRING&VERSION=MERCHANT-CART-0.1&TXNDESC=Item%20purchased%20from%20EasyDukan&PROCCODE=00&TRAN_TYPE=ECOMM_PURCHASE&STORE_ID=");
-
-        OkHttpClient client = new OkHttpClient().newBuilder()
-                .build();
-        Request r = new Request.Builder()
-                .url(getPaymentLnk)
-                .method("POST", body)
-                .addHeader("Content-Type", "application/x-www-form-urlencoded")
-                .build();
-        Response results = client.newCall(r).execute();
-        System.err.println("Response" + results.body().string());
-        return results;
-
-//        try {
-//            RestTemplate restTemplate = new RestTemplate();
-//            ResponseEntity<String> responses = restTemplate.exchange(getPaymentLnk, HttpMethod.POST, res, String.class);
-////            HttpResult httpResult = HttpsPostConn.SendHttpsRequest("POST", String.valueOf(transaction.get("BASKET_ID")), getPaymentLnk, httpHeader,postParameters.toString(), 10000, 1500);
-//
-//            int statusCode = responses.getStatusCode().value();
-//            LogUtil.info(logprefix, location, "Responses", responses.getBody());
-//            if (statusCode == 200) {
-//                LogUtil.info(logprefix, location, "Get Token: " + responses.getBody(), "");
-//
-////                JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
-////                token = jsonResp.get("token").getAsString();
-//                System.err.println("Header" + responses.getHeaders());
-//                return responses.getBody();
-//
-//            } else {
-//
-//                LogUtil.info(logprefix, location, "Request failed", responses.getBody());
-//                result = "";
-//                System.err.println("Header" + responses.getHeaders());
-//
-//                return responses.getBody();
-//
-//            }
-//            if (httpResult.resultCode==0) {
-//                LogUtil.info(logprefix, location, "Request successful", httpResult.responseString);
-//
-//            } else {
-//                LogUtil.info(logprefix, location, "Request failed", "");
-////            }
-//    } catch(
-//    Exception exception)
-//
-//    {
-//        LogUtil.info(logprefix, location, "Exception : ", exception.getMessage());
-//        result = exception.getMessage();
-//    }
-
-
-    }
-
 
     public String getMd5(String data) {
         try {
