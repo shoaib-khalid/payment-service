@@ -7,7 +7,10 @@
 ### Code Changes:
 
 1. GO Pay Fast Added Validation
-2.
+
+Application properties :  paymentRedirectUrl =https://payment.dev-pk.symplified.ai/payment-redirect?
+
+
 ALTER TABLE symplified.payment_orders ADD hash varchar(500) NULL;
 ALTER TABLE symplified.payment_orders ADD hashDate varchar(100) NULL;
 ALTER TABLE symplified.payment_orders CHANGE Column1 paymentAmount decimal(15,2) NULL;
