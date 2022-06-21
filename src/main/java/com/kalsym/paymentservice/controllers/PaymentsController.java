@@ -15,6 +15,7 @@ import com.kalsym.paymentservice.utils.DateTimeUtil;
 import com.kalsym.paymentservice.utils.LogUtil;
 import com.kalsym.paymentservice.utils.StringUtility;
 //import okhttp3.RequestBody;
+import org.apache.http.message.BasicNameValuePair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -23,17 +24,23 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.apache.http.NameValuePair;
 
 
+import javax.net.ssl.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.websocket.server.PathParam;
 import java.math.BigInteger;
+import java.net.SocketTimeoutException;
 import java.net.URI;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.HashMap;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+import java.util.*;
 import java.io.*;
-import java.util.Map;
 
 import okhttp3.*;
 
@@ -370,6 +377,144 @@ public class PaymentsController {
             return "<html>\n" + "OK" + "\n" + "</html>";
 
         }
+
+    }
+
+    @PostMapping(path = {"/postTransaction"}, name = "post-sp-transaction", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public String postTransaction(HttpServletRequest
+                                          request, @RequestBody MultiValueMap<String, String> transaction) throws IOException {
+        String logprefix = request.getRequestURI() + " ";
+        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
+        HttpReponse response = new HttpReponse(request.getRequestURI());
+        String result = "";
+
+        List<NameValuePair> urlParameters = new ArrayList<>();
+
+
+        MultiValueMap<String, Object> postParameters = new LinkedMultiValueMap<>();
+        urlParameters.add(new BasicNameValuePair("CURRENCY_CODE", transaction.get("CURRENCY_CODE").toString()));
+        urlParameters.add(new BasicNameValuePair("MERCHANT_ID", transaction.get("MERCHANT_ID").toString()));
+        urlParameters.add(new BasicNameValuePair("MERCHANT_NAME", transaction.get("MERCHANT_NAME").toString()));
+        urlParameters.add(new BasicNameValuePair("TOKEN", transaction.get("TOKEN").toString()));
+        urlParameters.add(new BasicNameValuePair("FAILURE_URL", transaction.get("FAILURE_URL").toString()));
+        urlParameters.add(new BasicNameValuePair("SUCCESS_URL", transaction.get("SUCCESS_URL").toString()));
+        urlParameters.add(new BasicNameValuePair("CHECKOUT_URL", transaction.get("CHECKOUT_URL").toString()));
+        urlParameters.add(new BasicNameValuePair("CUSTOMER_EMAIL_ADDRESS", transaction.get("CUSTOMER_EMAIL_ADDRESS").toString()));
+        urlParameters.add(new BasicNameValuePair("CUSTOMER_MOBILE_NO", transaction.get("CUSTOMER_MOBILE_NO").toString()));
+        urlParameters.add(new BasicNameValuePair("TXNAMT", transaction.get("TXNAMT").toString()));
+        urlParameters.add(new BasicNameValuePair("BASKET_ID", transaction.get("BASKET_ID").toString()));
+        urlParameters.add(new BasicNameValuePair("ORDER_DATE", transaction.get("ORDER_DATE").toString()));
+        urlParameters.add(new BasicNameValuePair("SIGNATURE", transaction.get("SIGNATURE").toString()));
+        urlParameters.add(new BasicNameValuePair("VERSION", transaction.get("VERSION").toString()));
+        urlParameters.add(new BasicNameValuePair("TXNDESC", transaction.get("TXNDESC").toString()));
+        urlParameters.add(new BasicNameValuePair("PROCCODE", transaction.get("PROCCODE").toString()));
+        urlParameters.add(new BasicNameValuePair("TRAN_TYPE", transaction.get("TRAN_TYPE").toString()));
+        urlParameters.add(new BasicNameValuePair("STORE_ID", transaction.get("STORE_ID").toString()));
+
+        String systemTransactionId = transaction.get("BASKET_ID").toString();
+
+        System.err.println("POST : " + urlParameters);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", "multipart/form-data");
+        headers.add("Host", "ipguat.apps.net.pk");
+
+        try {
+            // Create a trust manager that does not validate certificate chains
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                    new X509TrustManager() {
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return new X509Certificate[0];
+                        }
+
+                        public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                        }
+
+                        public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                        }
+                    }};
+
+            // Ignore differences between given hostname and certificate hostname
+            HostnameVerifier hv = new HostnameVerifier() {
+                public boolean verify(String hostname, SSLSession session) {
+                    return true;
+                }
+            };
+
+            SSLContext sc = SSLContext.getInstance("TLSv1.2");
+            sc.init(null, trustAllCerts, new SecureRandom());
+            String targetUrl = "https://ipguat.apps.net.pk/Ecommerce/api/Transaction/PostTransaction";
+
+            LogUtil.info(systemTransactionId, location, "Sending Request to :" + targetUrl, "");
+            URL url = new URL(targetUrl);
+            HttpsURLConnection con = (HttpsURLConnection) url.openConnection();
+//            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+//            con.setSSLSocketFactory(sc.getSocketFactory());
+//            con.setHostnameVerifier(hv);
+            con.setConnectTimeout(10000);
+            con.setReadTimeout(15000);
+            con.setRequestMethod(String.valueOf(HttpMethod.POST));
+            con.setDoOutput(true);
+            con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            con.setRequestProperty("Host", "ipguat.apps.net.pk");
+
+
+            con.connect();
+
+//            if (requestBody != null) {
+//                //for post paramters in JSON Format
+            OutputStream os = con.getOutputStream();
+            OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
+//
+//                LogUtil.info(refId, loglocation, "Request JSON :" + requestBody, "");
+            osw.write(urlParameters.toString());
+            osw.flush();
+            osw.close();
+//            }
+
+            int responseCode = con.getResponseCode();
+            LogUtil.info(systemTransactionId, location, "HTTP Response code:" + responseCode, "");
+
+
+            BufferedReader in;
+            if (responseCode < HttpsURLConnection.HTTP_BAD_REQUEST) {
+                in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+            } else {
+                in = new BufferedReader(new InputStreamReader(con.getErrorStream()));
+            }
+            String inputLine;
+            StringBuilder httpMsgResp = new StringBuilder();
+            while ((inputLine = in.readLine()) != null) {
+                httpMsgResp.append(inputLine);
+            }
+            in.close();
+
+            Map<String, List<String>> map = con.getHeaderFields();
+            for (Map.Entry<String, List<String>> entry : map.entrySet()) {
+                System.out.println("Key : " + entry.getKey()
+                        + " ,Value : " + entry.getValue());
+                if (entry.getKey().equals("location")) {
+                    LogUtil.info(systemTransactionId, location, "Response of Redirect : " + entry.getValue(), "");
+                }
+            }
+            LogUtil.info(systemTransactionId, location, "Response of :" + httpMsgResp.toString(), "");
+
+        } catch (SocketTimeoutException ex) {
+            if (ex.getMessage().equals("Read timed out")) {
+
+                LogUtil.error(systemTransactionId, location, "Exception : " + ex.getMessage(), "", ex);
+            } else {
+
+                LogUtil.error(systemTransactionId, location, "Exception : " + ex.getMessage(), "", ex);
+            }
+        } catch (Exception ex) {
+            //exception occur
+
+            LogUtil.error(systemTransactionId, location, "Exception during send request : ", "", ex);
+        }
+
+        return response.toString();
+
 
     }
 
