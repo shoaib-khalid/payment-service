@@ -40,9 +40,8 @@ public class SwaggerConfig {
                 .description("Used to make payment via delivery partners")
                 .termsOfServiceUrl("not added yet")
                 .license("not added yet")
-                .licenseUrl("").version("2.2.11").build();
+                .licenseUrl("").version("2.2.12").build();
     }
-
 
     @Bean
     public Docket paymentServiceApi() {
