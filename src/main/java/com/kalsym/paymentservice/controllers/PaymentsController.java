@@ -25,6 +25,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.apache.http.NameValuePair;
+import org.springframework.web.client.RestTemplate;
 
 
 import javax.net.ssl.*;
@@ -34,6 +35,7 @@ import javax.websocket.server.PathParam;
 import java.math.BigInteger;
 import java.net.SocketTimeoutException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -41,8 +43,6 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.*;
 import java.io.*;
-
-import okhttp3.*;
 
 /**
  * @author Sarosh
@@ -200,9 +200,9 @@ public class PaymentsController {
             requestBody.addProperty("order_date", order_date);
         }
 
-        LogUtil.info(logprefix, location, "IP:" + IP, order.getClientTransactionId());
-        LogUtil.info(logprefix, location, "IP:" + IP, order.getClientTransactionId());
-        LogUtil.info(logprefix, location, "IP:" + IP, providerIpRepository.toString());
+//        LogUtil.info(logprefix, location, "IP:" + IP, order.getClientTransactionId());
+//        LogUtil.info(logprefix, location, "IP:" + IP, order.getClientTransactionId());
+//        LogUtil.info(logprefix, location, "IP:" + IP, providerIpRepository.toString());
         ProcessRequest process = new ProcessRequest(systemTransactionId, requestBody, providerRatePlanRepository, providerConfigurationRepository, providerRepository);
         ProcessResult processResult = process.ProcessCallback(IP, providerIpRepository, order.getSpId());
         LogUtil.info(systemTransactionId, location, "ProcessRequest finish. resultCode:" + processResult.resultCode, "");
@@ -391,33 +391,46 @@ public class PaymentsController {
         List<NameValuePair> urlParameters = new ArrayList<>();
 
 
-        MultiValueMap<String, Object> postParameters = new LinkedMultiValueMap<>();
-        urlParameters.add(new BasicNameValuePair("CURRENCY_CODE", transaction.get("CURRENCY_CODE").toString()));
-        urlParameters.add(new BasicNameValuePair("MERCHANT_ID", transaction.get("MERCHANT_ID").toString()));
-        urlParameters.add(new BasicNameValuePair("MERCHANT_NAME", transaction.get("MERCHANT_NAME").toString()));
-        urlParameters.add(new BasicNameValuePair("TOKEN", transaction.get("TOKEN").toString()));
-        urlParameters.add(new BasicNameValuePair("FAILURE_URL", transaction.get("FAILURE_URL").toString()));
-        urlParameters.add(new BasicNameValuePair("SUCCESS_URL", transaction.get("SUCCESS_URL").toString()));
-        urlParameters.add(new BasicNameValuePair("CHECKOUT_URL", transaction.get("CHECKOUT_URL").toString()));
-        urlParameters.add(new BasicNameValuePair("CUSTOMER_EMAIL_ADDRESS", transaction.get("CUSTOMER_EMAIL_ADDRESS").toString()));
-        urlParameters.add(new BasicNameValuePair("CUSTOMER_MOBILE_NO", transaction.get("CUSTOMER_MOBILE_NO").toString()));
-        urlParameters.add(new BasicNameValuePair("TXNAMT", transaction.get("TXNAMT").toString()));
-        urlParameters.add(new BasicNameValuePair("BASKET_ID", transaction.get("BASKET_ID").toString()));
-        urlParameters.add(new BasicNameValuePair("ORDER_DATE", transaction.get("ORDER_DATE").toString()));
-        urlParameters.add(new BasicNameValuePair("SIGNATURE", transaction.get("SIGNATURE").toString()));
-        urlParameters.add(new BasicNameValuePair("VERSION", transaction.get("VERSION").toString()));
-        urlParameters.add(new BasicNameValuePair("TXNDESC", transaction.get("TXNDESC").toString()));
-        urlParameters.add(new BasicNameValuePair("PROCCODE", transaction.get("PROCCODE").toString()));
-        urlParameters.add(new BasicNameValuePair("TRAN_TYPE", transaction.get("TRAN_TYPE").toString()));
-        urlParameters.add(new BasicNameValuePair("STORE_ID", transaction.get("STORE_ID").toString()));
+        MultiValueMap<String, String> postParameters = new LinkedMultiValueMap<>();
+        postParameters.add("CURRENCY_CODE", transaction.get("CURRENCY_CODE").toString());
+        postParameters.add("MERCHANT_ID", transaction.get("MERCHANT_ID").toString());
+        postParameters.add("MERCHANT_NAME", transaction.get("MERCHANT_NAME").toString());
+        postParameters.add("TOKEN", transaction.get("TOKEN").toString());
+        postParameters.add("FAILURE_URL", transaction.get("FAILURE_URL").toString());
+        postParameters.add("SUCCESS_URL", transaction.get("SUCCESS_URL").toString());
+        postParameters.add("CHECKOUT_URL", transaction.get("CHECKOUT_URL").toString());
+        postParameters.add("CUSTOMER_EMAIL_ADDRESS", transaction.get("CUSTOMER_EMAIL_ADDRESS").toString());
+        postParameters.add("CUSTOMER_MOBILE_NO", transaction.get("CUSTOMER_MOBILE_NO").toString());
+        postParameters.add("TXNAMT", transaction.get("TXNAMT").toString());
+        postParameters.add("BASKET_ID", transaction.get("BASKET_ID").toString());
+        postParameters.add("ORDER_DATE", transaction.get("ORDER_DATE").toString());
+        postParameters.add("SIGNATURE", transaction.get("SIGNATURE").toString());
+        postParameters.add("VERSION", transaction.get("VERSION").toString());
+        postParameters.add("TXNDESC", transaction.get("TXNDESC").toString());
+        postParameters.add("PROCCODE", transaction.get("PROCCODE").toString());
+        postParameters.add("TRAN_TYPE", transaction.get("TRAN_TYPE").toString());
+        postParameters.add("STORE_ID", transaction.get("STORE_ID").toString());
 
         String systemTransactionId = transaction.get("BASKET_ID").toString();
 
-        System.err.println("POST : " + urlParameters);
+        System.err.println("POST : " + postParameters);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Type", "multipart/form-data");
+        headers.add("Content-Type", "application/x-www-form-urlencoded");
         headers.add("Host", "ipguat.apps.net.pk");
+        headers.add("cookie", "uat_payfast=5ryzfauvxocxic1jb1utmb23");
+        headers.add("origin", "https://awan-tech.dev-pk.symplified.ai");
+        headers.add("referer", "https://awan-tech.dev-pk.symplified.ai/");
+        headers.add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36");
+        headers.add("Accept", "*/*");
+        headers.add("Cache-Control", "no-cache");
+        headers.add("Postman-Token", "52d84ee7-0c49-4854-9224-501f24379d67");
+        headers.add("Host", "ipguat.apps.net.pk");
+        headers.add("Accept-Encoding", "gzip, deflate, br");
+        headers.add("Connection", "keep-alive");
+        headers.add("Content-Type", "application/x-www-form-urlencoded");
+        headers.add("Content-Length", "1375");
+        headers.add("Cookie", "uat_payfast=mzsnfd32i3rrcfw55tqzzlqd");
 
         try {
             // Create a trust manager that does not validate certificate chains
@@ -457,8 +470,20 @@ public class PaymentsController {
             con.setDoOutput(true);
             con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
             con.setRequestProperty("Host", "ipguat.apps.net.pk");
+            con.setRequestProperty("origin", "https://awan-tech.dev-pk.symplified.ai");
 
-
+            con.setRequestProperty("cookie", "uat_payfast=5ryzfauvxocxic1jb1utmb23");
+            con.setRequestProperty("referer", "https://awan-tech.dev-pk.symplified.ai/");
+            con.setRequestProperty("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36");
+            con.setRequestProperty("Accept", "*/*");
+            con.setRequestProperty("Cache-Control", "no-cache");
+            con.setRequestProperty("Postman-Token", "52d84ee7-0c49-4854-9224-501f24379d67");
+            con.setRequestProperty("Host", "ipguat.apps.net.pk");
+            con.setRequestProperty("Accept-Encoding", "gzip, deflate, br");
+            con.setRequestProperty("Connection", "keep-alive");
+            con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            con.setRequestProperty("Content-Length", "1375");
+            con.setRequestProperty("Cookie", "uat_payfast=mzsnfd32i3rrcfw55tqzzlqd");
             con.connect();
 
 //            if (requestBody != null) {
@@ -467,7 +492,7 @@ public class PaymentsController {
             OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
 //
 //                LogUtil.info(refId, loglocation, "Request JSON :" + requestBody, "");
-            osw.write(urlParameters.toString());
+            osw.write(postParameters.toString());
             osw.flush();
             osw.close();
 //            }
@@ -489,14 +514,14 @@ public class PaymentsController {
             }
             in.close();
 
-            Map<String, List<String>> map = con.getHeaderFields();
-            for (Map.Entry<String, List<String>> entry : map.entrySet()) {
-                System.out.println("Key : " + entry.getKey()
-                        + " ,Value : " + entry.getValue());
-                if (entry.getKey().equals("location")) {
-                    LogUtil.info(systemTransactionId, location, "Response of Redirect : " + entry.getValue(), "");
-                }
-            }
+//            Map<String, List<String>> map = con.getHeaderFields();
+//            for (Map.Entry<String, List<String>> entry : map.entrySet()) {
+//                System.out.println("Key : " + entry.getKey()
+//                        + " ,Value : " + entry.getValue());
+//                if (entry.getKey().equals("location")) {
+//                    LogUtil.info(systemTransactionId, location, "Response of Redirect : " + entry.getValue(), "");
+//                }
+//            }
             LogUtil.info(systemTransactionId, location, "Response of :" + httpMsgResp.toString(), "");
 
         } catch (SocketTimeoutException ex) {
@@ -516,6 +541,43 @@ public class PaymentsController {
         return response.toString();
 
 
+    }
+
+    @PostMapping(value = {"/PostTransaction"}, consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<String> mirrorRest(HttpMethod method, HttpServletRequest request, @RequestBody MultiValueMap<String, String> transaction) throws URISyntaxException {
+
+        String targetUrl = "https://ipguat.apps.net.pk/Ecommerce/api/Transaction/PostTransaction";
+
+        MultiValueMap<String, String> postParameters = new LinkedMultiValueMap<>();
+        postParameters.add("CURRENCY_CODE", transaction.get("CURRENCY_CODE").toString());
+        postParameters.add("MERCHANT_ID", transaction.get("MERCHANT_ID").toString());
+        postParameters.add("MERCHANT_NAME", transaction.get("MERCHANT_NAME").toString());
+        postParameters.add("TOKEN", transaction.get("TOKEN").toString());
+        postParameters.add("FAILURE_URL", transaction.get("FAILURE_URL").toString());
+        postParameters.add("SUCCESS_URL", transaction.get("SUCCESS_URL").toString());
+        postParameters.add("CHECKOUT_URL", transaction.get("CHECKOUT_URL").toString());
+        postParameters.add("CUSTOMER_EMAIL_ADDRESS", transaction.get("CUSTOMER_EMAIL_ADDRESS").toString());
+        postParameters.add("CUSTOMER_MOBILE_NO", transaction.get("CUSTOMER_MOBILE_NO").toString());
+        postParameters.add("TXNAMT", transaction.get("TXNAMT").toString());
+        postParameters.add("BASKET_ID", transaction.get("BASKET_ID").toString());
+        postParameters.add("ORDER_DATE", transaction.get("ORDER_DATE").toString());
+        postParameters.add("SIGNATURE", transaction.get("SIGNATURE").toString());
+        postParameters.add("VERSION", transaction.get("VERSION").toString());
+        postParameters.add("TXNDESC", transaction.get("TXNDESC").toString());
+        postParameters.add("PROCCODE", transaction.get("PROCCODE").toString());
+        postParameters.add("TRAN_TYPE", transaction.get("TRAN_TYPE").toString());
+        postParameters.add("STORE_ID", transaction.get("STORE_ID").toString());
+        LogUtil.info("logprefix", "location", "Query Proxy  : " + postParameters, "");
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", "application/x-www-form-urlencoded");
+        HttpEntity<MultiValueMap<String, String>> body = new HttpEntity<>(transaction, headers);
+
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<String> responseEntity = restTemplate.exchange(targetUrl, HttpMethod.POST, body, String.class);
+        LogUtil.info(transaction.get("BASKET_ID").toString(), "location", "Response Proxy  : ", responseEntity.getHeaders().toString());
+        LogUtil.info(transaction.get("BASKET_ID").toString(), "location", "Response Body Proxy  : ", responseEntity.getBody().toString());
+
+        return responseEntity;
     }
 
     public String getMd5(String data) {
