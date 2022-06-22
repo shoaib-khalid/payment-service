@@ -567,15 +567,29 @@ public class PaymentsController {
         postParameters.add("PROCCODE", transaction.get("PROCCODE").toString());
         postParameters.add("TRAN_TYPE", transaction.get("TRAN_TYPE").toString());
         postParameters.add("STORE_ID", transaction.get("STORE_ID").toString());
-        LogUtil.info("logprefix", "location", "Query Proxy  : " + postParameters, "");
+        LogUtil.info(transaction.get("BASKET_ID").toString(), request.getRequestURI(), "Query Proxy  : " + postParameters, "");
         HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Type", "application/x-www-form-urlencoded");
+//        headers.add("Content-Type", "application/x-www-form-urlencoded");
+//        headers.add("set-cookie", request.getHeader("Cookie"));
+//        headers.add("User-Agent", request.getHeader("User-Agent"));
+//        headers.add("origin", "https://dev-pk.symplified.ai/");
+
+        Map<String, String> map = new HashMap<String, String>();
+
+        Enumeration headerNames = request.getHeaderNames();
+        while (headerNames.hasMoreElements()) {
+            String key = (String) headerNames.nextElement();
+            String value = request.getHeader(key);
+            LogUtil.info(transaction.get("BASKET_ID").toString(), request.getRequestURI(), "Header Key : " + key, "Value : " + value);
+
+            headers.add(key, value);
+        }
         HttpEntity<MultiValueMap<String, String>> body = new HttpEntity<>(transaction, headers);
 
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> responseEntity = restTemplate.exchange(targetUrl, HttpMethod.POST, body, String.class);
-        LogUtil.info(transaction.get("BASKET_ID").toString(), "location", "Response Proxy  : ", responseEntity.getHeaders().toString());
-        LogUtil.info(transaction.get("BASKET_ID").toString(), "location", "Response Body Proxy  : ", responseEntity.getBody().toString());
+        LogUtil.info(transaction.get("BASKET_ID").toString(), request.getRequestURI(), "Response Proxy  : ", responseEntity.getHeaders().toString());
+        LogUtil.info(transaction.get("BASKET_ID").toString(), request.getRequestURI(), "Response Body Proxy  : ", responseEntity.getBody().toString());
 
         return responseEntity;
     }
