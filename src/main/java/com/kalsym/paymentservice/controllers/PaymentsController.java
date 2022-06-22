@@ -74,6 +74,9 @@ public class PaymentsController {
     @Value("${goPayFastPaymentUrl}")
     String goPayFastPaymentUrl;
 
+    @Value("${origin}")
+    String origin;
+
     @PostMapping(path = {"/makePayment"}, name = "payments-make-payment")
     public ResponseEntity<HttpReponse> makePayment(HttpServletRequest request, @Valid @RequestBody PaymentRequest paymentRequest) {
         String logprefix = request.getRequestURI() + " ";
@@ -527,8 +530,11 @@ public class PaymentsController {
             String key = (String) headerNames.nextElement();
             String value = request.getHeader(key);
             LogUtil.info(transaction.get("BASKET_ID").toString(), request.getRequestURI(), "Header Key : " + key, "Value : " + value);
-
+            if(key.equals("origin")){
+                headers.add("origin", origin);
+            }else{
             headers.add(key, value);
+            }
         }
         HttpEntity<MultiValueMap<String, String>> body = new HttpEntity<>(transaction, headers);
 

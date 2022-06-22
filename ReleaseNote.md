@@ -7,7 +7,11 @@
 ### Code Changes:
 1. Production Bug Fixed
 Application Properties _dev Updates : goPayFastPaymentUrl =https://ipguat.apps.net.pk/Ecommerce/api/Transaction/PostTransaction
-Application Properties _Prod Updates : goPayFastPaymentUrl =https://ipg1.apps.net.pk/Ecommerce/api/Transaction/PostTransaction
+                                      origin =dev-pk.symplified.ai
+
+2. Application Properties _Prod Updates : goPayFastPaymentUrl =https://ipg1.apps.net.pk/Ecommerce/api/Transaction/PostTransaction
+                                          origin =easydukan.co
+
 
 
 
