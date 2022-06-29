@@ -30,7 +30,7 @@ public class OrderPaymentService {
     private String orderServiceToken;
 
     public OrderConfirm updateStatus(String orderId, String paymentStatus, String modifyBy, String message) {
-        String url = orderUrl + orderId + "/completion-status-updates";
+        String url = orderUrl + "orders/" + orderId + "/completion-status-updates";
         try {
             RestTemplate restTemplate = new RestTemplate();
             Instant instant = Instant.now();
@@ -51,12 +51,53 @@ public class OrderPaymentService {
             ResponseEntity<OrderConfirmData> res = restTemplate.exchange(url, HttpMethod.PUT, httpEntity, OrderConfirmData.class);
             logger.info("res : " + res);
 
-            logger.debug("Sending request to product-service: {} to get Order (liveChatCsrGroupName) against storeId: {} , httpEntity: {}", url, orderId, httpEntity);
+            logger.debug("Sending request to order-service: {} to get Order (liveChatCsrGroupName) against orderId: {} , httpEntity: {}", url, orderId, httpEntity);
+
+            if (res != null) {
+                OrderConfirmData orderConfirm = (OrderConfirmData) res.getBody();
+                logger.debug("Store orders group (liveChatOrdersGroupName) received: {}, against orderId: {}", orderConfirm.getData().getId(), orderId);
+                return orderConfirm.getData();
+            } else {
+                logger.warn("Cannot get Order against orderId: {}", orderId);
+            }
+
+            logger.debug("Request sent to live service, responseCode: {}, responseBody: {}", res.getStatusCode(), res.getBody());
+        } catch (RestClientException e) {
+            logger.error("Error getting Order id:{}, url: {}", orderId, url, e);
+            return null;
+        }
+        return null;
+    }
+
+
+    public OrderConfirm groupOrderUpdateStatus(String orderId, String paymentStatus, String modifyBy, String message) {
+        String url = orderUrl + "ordergroup/" + orderId + "/completion-status-updates";
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            Instant instant = Instant.now();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Authorization", orderServiceToken);
+            OrderUpdate orders = new OrderUpdate();
+            orders.setComments(message);
+            orders.setCreated(instant.toString());
+            orders.setModifiedBy(modifyBy);
+            orders.setOrderId(orderId);
+            orders.setStatus(paymentStatus);
+            logger.info("payment : " + orders);
+
+            HttpEntity<OrderUpdate> httpEntity;
+            httpEntity = new HttpEntity(orders, headers);
+            logger.info("orderDeliveryConfirmationURL : " + url);
+            ResponseEntity<OrderConfirmData> res = restTemplate.exchange(url, HttpMethod.PUT, httpEntity, OrderConfirmData.class);
+            logger.info("res : " + res);
+
+            logger.debug("Sending request to order-service: {} to update order group status (liveChatCsrGroupName) against orderId: {} , httpEntity: {}", url, orderId, httpEntity);
 //            ResponseEntity res = restTemplate.exchange(url, HttpMethod.PUT, httpEntity, OrderConfirmData.class);
 //
             if (res != null) {
                 OrderConfirmData orderConfirm = (OrderConfirmData) res.getBody();
-                logger.debug("Store orders group (liveChatOrdersGroupName) received: {}, against storeId: {}", orderConfirm.getData().getId(), orderId);
+                logger.debug("Store orders group (liveChatOrdersGroupName) received: {}, against orderId: {}", orderConfirm.getData().getId(), orderId);
                 return orderConfirm.getData();
             } else {
                 logger.warn("Cannot get Order against orderId: {}", orderId);
@@ -105,7 +146,7 @@ public class OrderPaymentService {
 
     public OrderConfirm getOrderById(String orderId) {
 
-        String url = orderUrl + orderId;
+        String url = orderUrl +"orders/" + orderId;
         System.err.println("Order url " + url);
         try {
             RestTemplate restTemplate = new RestTemplate();
@@ -121,6 +162,39 @@ public class OrderPaymentService {
 
             if (res != null) {
                 OrderConfirmData orderConfirmData = (OrderConfirmData) res.getBody();
+                logger.debug("Orders group (liveChatOrdersGroupName) received: {}, against orderId: {}", orderConfirmData.getData(), orderId);
+                return orderConfirmData.getData();
+            } else {
+                logger.warn("Cannot fine the order for id: {}", orderId);
+            }
+
+            logger.debug("Request sent to live service, responseCode: {}, responseBody: {}", res.getStatusCode(), res.getBody());
+        } catch (RestClientException e) {
+            logger.error("Error getting Order against orderId:{}, url: {}", orderId, orderUrl, e);
+            return null;
+        }
+        return null;
+    }
+
+
+    public OrderGroup getGroupOrder(String orderId) {
+
+        String url = orderUrl +"ordergroups/" + orderId;
+        System.err.println("Order url " + url);
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            logger.info("OrderGetDetailsURL : " + url);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Authorization", orderServiceToken);
+
+            HttpEntity httpEntity = new HttpEntity(headers);
+
+            logger.debug("Sending request to order-service: {} to get order group name (liveChatCsrGroupName) against orderId: {} , httpEntity: {}", url, orderId, httpEntity);
+            ResponseEntity res = restTemplate.exchange(url, HttpMethod.GET, httpEntity, OrderGroupData.class);
+
+            if (res != null) {
+                OrderGroupData orderConfirmData = (OrderGroupData) res.getBody();
                 logger.debug("Orders group (liveChatOrdersGroupName) received: {}, against orderId: {}", orderConfirmData.getData(), orderId);
                 return orderConfirmData.getData();
             } else {
@@ -166,7 +240,6 @@ public class OrderPaymentService {
         }
         return null;
     }
-
 
 
 }

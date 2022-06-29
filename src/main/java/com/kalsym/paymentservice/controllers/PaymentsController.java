@@ -10,6 +10,7 @@ import com.kalsym.paymentservice.provider.SpCallbackResult;
 import com.kalsym.paymentservice.repositories.*;
 import com.kalsym.paymentservice.service.OrderPaymentService;
 import com.kalsym.paymentservice.service.Response.OrderConfirm;
+import com.kalsym.paymentservice.service.Response.OrderGroup;
 import com.kalsym.paymentservice.service.Response.StoreDetails;
 import com.kalsym.paymentservice.utils.DateTimeUtil;
 import com.kalsym.paymentservice.utils.LogUtil;
@@ -89,17 +90,26 @@ public class PaymentsController {
         //generate transaction id
         String systemTransactionId = StringUtility.CreateRefID("PY");
         paymentRequest.setSystemTransactionId(systemTransactionId);
+        if (paymentRequest.getTransactionId().startsWith("G")) {
+            OrderGroup res = paymentService.getGroupOrder(paymentRequest.getTransactionId());
 
-        OrderConfirm res = paymentService.getOrderById(paymentRequest.getTransactionId());
-        LogUtil.info(systemTransactionId, location, "Order Service Return :   ", res.getTotal().toString());
-        StoreDetails storeDetails = paymentService.getStore(res.getStoreId());
+            paymentRequest.setRegionCountryId(res.getRegionCountryId());
+            paymentRequest.setPaymentAmount(res.getTotal());
 
-        paymentRequest.setRegionCountryId(storeDetails.getRegionCountryId());
-        paymentRequest.setPaymentAmount(res.getTotal());
-        LogUtil.info(systemTransactionId, location, "Payment Amount  ", paymentRequest.getPaymentAmount().toString());
+        }else {
+            OrderConfirm res = paymentService.getOrderById(paymentRequest.getTransactionId());
+            LogUtil.info(systemTransactionId, location, "Order Service Return :   ", res.getTotal().toString());
+            StoreDetails storeDetails = paymentService.getStore(res.getStoreId());
+
+            paymentRequest.setRegionCountryId(storeDetails.getRegionCountryId());
+            paymentRequest.setPaymentAmount(res.getTotal());
+            LogUtil.info(systemTransactionId, location, "Payment Amount  ", paymentRequest.getPaymentAmount().toString());
 
 
-        LogUtil.info(systemTransactionId, location, "PaymentOrder Id ", paymentRequest.getTransactionId());
+        }
+
+
+        LogUtil.info(systemTransactionId, location, "PaymentOrders Id ", paymentRequest.getTransactionId());
 
         ProcessRequest process = new ProcessRequest(systemTransactionId, paymentRequest, providerRatePlanRepository, providerConfigurationRepository, providerRepository);
         ProcessResult processResult = process.MakePayment();
@@ -304,8 +314,15 @@ public class PaymentsController {
 
         if (order.getStatus().equals("PENDING")) {
             if (status_id == 1) {
-                OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_CONFIRMED", "", msg);
-                StoreDetails stores = paymentService.getStoreDeliveryDetails(res.getStoreId());
+                if (order_id.startsWith("G")) {
+                    OrderConfirm res = paymentService.groupOrderUpdateStatus(order_id, "PAYMENT_CONFIRMED", "", msg);
+                    StoreDetails stores = paymentService.getStoreDeliveryDetails(res.getStoreId());
+
+                }else {
+                    OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_CONFIRMED", "", msg);
+                    StoreDetails stores = paymentService.getStoreDeliveryDetails(res.getStoreId());
+
+                }
                 String spErrorCode = String.valueOf(status_id);
                 String statusDescription = msg;
                 String paymentTransactionId = transaction_id;
@@ -354,196 +371,6 @@ public class PaymentsController {
 
         }
 
-    }
-
-//    @PostMapping(path = {"/postTransaction"}, name = "post-sp-transaction", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-//    public String postTransaction(HttpServletRequest request, @RequestBody MultiValueMap<String, String> transaction) throws IOException {
-//        String logprefix = request.getRequestURI() + " ";
-//        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
-//        HttpReponse response = new HttpReponse(request.getRequestURI());
-//        String result = "";
-//
-//        List<NameValuePair> urlParameters = new ArrayList<>();
-//
-//
-//        MultiValueMap<String, String> postParameters = new LinkedMultiValueMap<>();
-//        postParameters.add("CURRENCY_CODE", transaction.get("CURRENCY_CODE").toString());
-//        postParameters.add("MERCHANT_ID", transaction.get("MERCHANT_ID").toString());
-//        postParameters.add("MERCHANT_NAME", transaction.get("MERCHANT_NAME").toString());
-//        postParameters.add("TOKEN", transaction.get("TOKEN").toString());
-//        postParameters.add("FAILURE_URL", transaction.get("FAILURE_URL").toString());
-//        postParameters.add("SUCCESS_URL", transaction.get("SUCCESS_URL").toString());
-//        postParameters.add("CHECKOUT_URL", transaction.get("CHECKOUT_URL").toString());
-//        postParameters.add("CUSTOMER_EMAIL_ADDRESS", transaction.get("CUSTOMER_EMAIL_ADDRESS").toString());
-//        postParameters.add("CUSTOMER_MOBILE_NO", transaction.get("CUSTOMER_MOBILE_NO").toString());
-//        postParameters.add("TXNAMT", transaction.get("TXNAMT").toString());
-//        postParameters.add("BASKET_ID", transaction.get("BASKET_ID").toString());
-//        postParameters.add("ORDER_DATE", transaction.get("ORDER_DATE").toString());
-//        postParameters.add("SIGNATURE", transaction.get("SIGNATURE").toString());
-//        postParameters.add("VERSION", transaction.get("VERSION").toString());
-//        postParameters.add("TXNDESC", transaction.get("TXNDESC").toString());
-//        postParameters.add("PROCCODE", transaction.get("PROCCODE").toString());
-//        postParameters.add("TRAN_TYPE", transaction.get("TRAN_TYPE").toString());
-//        postParameters.add("STORE_ID", transaction.get("STORE_ID").toString());
-//
-//        String systemTransactionId = transaction.get("BASKET_ID").toString();
-//
-//        System.err.println("POST : " + postParameters);
-//
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.add("Content-Type", "application/x-www-form-urlencoded");
-//        headers.add("Host", "ipguat.apps.net.pk");
-//        headers.add("cookie", "uat_payfast=5ryzfauvxocxic1jb1utmb23");
-//        headers.add("origin", "https://awan-tech.dev-pk.symplified.ai");
-//        headers.add("referer", "https://awan-tech.dev-pk.symplified.ai/");
-//        headers.add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36");
-//        headers.add("Accept", "*/*");
-//        headers.add("Cache-Control", "no-cache");
-//        headers.add("Postman-Token", "52d84ee7-0c49-4854-9224-501f24379d67");
-//        headers.add("Host", "ipguat.apps.net.pk");
-//        headers.add("Accept-Encoding", "gzip, deflate, br");
-//        headers.add("Connection", "keep-alive");
-//        headers.add("Content-Type", "application/x-www-form-urlencoded");
-//        headers.add("Content-Length", "1375");
-//        headers.add("Cookie", "uat_payfast=mzsnfd32i3rrcfw55tqzzlqd");
-//
-//        try {
-//            // Create a trust manager that does not validate certificate chains
-//            TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
-//                public X509Certificate[] getAcceptedIssuers() {
-//                    return new X509Certificate[0];
-//                }
-//
-//                public void checkClientTrusted(X509Certificate[] certs, String authType) {
-//                }
-//
-//                public void checkServerTrusted(X509Certificate[] certs, String authType) {
-//                }
-//            }};
-//
-//            // Ignore differences between given hostname and certificate hostname
-//            HostnameVerifier hv = new HostnameVerifier() {
-//                public boolean verify(String hostname, SSLSession session) {
-//                    return true;
-//                }
-//            };
-//
-//            SSLContext sc = SSLContext.getInstance("TLSv1.2");
-//            sc.init(null, trustAllCerts, new SecureRandom());
-//            String targetUrl = "https://ipguat.apps.net.pk/Ecommerce/api/Transaction/PostTransaction";
-//
-//            LogUtil.info(systemTransactionId, location, "Sending Request to :" + targetUrl, "");
-//            URL url = new URL(targetUrl);
-//            HttpsURLConnection con = (HttpsURLConnection) url.openConnection();
-////            HttpURLConnection con = (HttpURLConnection) url.openConnection();
-////            con.setSSLSocketFactory(sc.getSocketFactory());
-////            con.setHostnameVerifier(hv);
-//            con.setConnectTimeout(10000);
-//            con.setReadTimeout(15000);
-//            con.setRequestMethod(String.valueOf(HttpMethod.POST));
-//            con.setDoOutput(true);
-//            con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-//            con.setRequestProperty("Host", "ipguat.apps.net.pk");
-//            con.setRequestProperty("origin", "https://awan-tech.dev-pk.symplified.ai");
-//
-//            con.setRequestProperty("cookie", "uat_payfast=5ryzfauvxocxic1jb1utmb23");
-//            con.setRequestProperty("referer", "https://awan-tech.dev-pk.symplified.ai/");
-//            con.setRequestProperty("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36");
-//            con.setRequestProperty("Accept", "*/*");
-//            con.setRequestProperty("Cache-Control", "no-cache");
-//            con.setRequestProperty("Postman-Token", "52d84ee7-0c49-4854-9224-501f24379d67");
-//            con.setRequestProperty("Host", "ipguat.apps.net.pk");
-//            con.setRequestProperty("Accept-Encoding", "gzip, deflate, br");
-//            con.setRequestProperty("Connection", "keep-alive");
-//            con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-//            con.setRequestProperty("Content-Length", "1375");
-//            con.setRequestProperty("Cookie", "uat_payfast=mzsnfd32i3rrcfw55tqzzlqd");
-//            con.connect();
-//
-////            if (requestBody != null) {
-////                //for post paramters in JSON Format
-//            OutputStream os = con.getOutputStream();
-//            OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
-////
-////                LogUtil.info(refId, loglocation, "Request JSON :" + requestBody, "");
-//            osw.write(postParameters.toString());
-//            osw.flush();
-//            osw.close();
-////            }
-//
-//            int responseCode = con.getResponseCode();
-//            LogUtil.info(systemTransactionId, location, "HTTP Response code:" + responseCode, "");
-//
-//
-//            BufferedReader in;
-//            if (responseCode < HttpsURLConnection.HTTP_BAD_REQUEST) {
-//                in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-//            } else {
-//                in = new BufferedReader(new InputStreamReader(con.getErrorStream()));
-//            }
-//            String inputLine;
-//            StringBuilder httpMsgResp = new StringBuilder();
-//            while ((inputLine = in.readLine()) != null) {
-//                httpMsgResp.append(inputLine);
-//            }
-//            in.close();
-//
-////            Map<String, List<String>> map = con.getHeaderFields();
-////            for (Map.Entry<String, List<String>> entry : map.entrySet()) {
-////                System.out.println("Key : " + entry.getKey()
-////                        + " ,Value : " + entry.getValue());
-////                if (entry.getKey().equals("location")) {
-////                    LogUtil.info(systemTransactionId, location, "Response of Redirect : " + entry.getValue(), "");
-////                }
-////            }
-//            LogUtil.info(systemTransactionId, location, "Response of :" + httpMsgResp.toString(), "");
-//
-//        } catch (SocketTimeoutException ex) {
-//            if (ex.getMessage().equals("Read timed out")) {
-//
-//                LogUtil.error(systemTransactionId, location, "Exception : " + ex.getMessage(), "", ex);
-//            } else {
-//
-//                LogUtil.error(systemTransactionId, location, "Exception : " + ex.getMessage(), "", ex);
-//            }
-//        } catch (Exception ex) {
-//            //exception occur
-//
-//            LogUtil.error(systemTransactionId, location, "Exception during send request : ", "", ex);
-//        }
-//
-//        return response.toString();
-//
-//
-//    }
-
-    @PostMapping(value = {"/PostTransaction"}, consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-    public ResponseEntity<String> mirrorRest(HttpMethod method, HttpServletRequest request, @RequestBody MultiValueMap<String, String> transaction) throws URISyntaxException {
-
-        String targetUrl = goPayFastPaymentUrl;
-//        String targetUrl = "https://ipguat.apps.net.pk/Ecommerce/api/Transaction/PostTransaction";
-        LogUtil.info(transaction.get("BASKET_ID").toString(), request.getRequestURI(), "Query Proxy  : " + transaction, "");
-        HttpHeaders headers = new HttpHeaders();
-
-        Enumeration headerNames = request.getHeaderNames();
-        while (headerNames.hasMoreElements()) {
-            String key = (String) headerNames.nextElement();
-            String value = request.getHeader(key);
-            LogUtil.info(transaction.get("BASKET_ID").toString(), request.getRequestURI(), "Header Key : " + key, "Value : " + value);
-            if(key.equals("origin")){
-                headers.add("origin", origin);
-            }else{
-            headers.add(key, value);
-            }
-        }
-        HttpEntity<MultiValueMap<String, String>> body = new HttpEntity<>(transaction, headers);
-
-        RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<String> responseEntity = restTemplate.exchange(targetUrl, HttpMethod.POST, body, String.class);
-        LogUtil.info(transaction.get("BASKET_ID").toString(), request.getRequestURI(), "Response Proxy  : ", responseEntity.getHeaders().toString());
-        LogUtil.info(transaction.get("BASKET_ID").toString(), request.getRequestURI(), "Response Body Proxy  : ", responseEntity.getBody().toString());
-
-        return responseEntity;
     }
 
     public String getMd5(String data) {
