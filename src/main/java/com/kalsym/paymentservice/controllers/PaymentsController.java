@@ -316,12 +316,8 @@ public class PaymentsController {
             if (status_id == 1) {
                 if (order_id.startsWith("G")) {
                     OrderConfirm res = paymentService.groupOrderUpdateStatus(order_id, "PAYMENT_CONFIRMED", "", msg);
-                    StoreDetails stores = paymentService.getStoreDeliveryDetails(res.getStoreId());
-
                 }else {
                     OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_CONFIRMED", "", msg);
-                    StoreDetails stores = paymentService.getStoreDeliveryDetails(res.getStoreId());
-
                 }
                 String spErrorCode = String.valueOf(status_id);
                 String statusDescription = msg;
