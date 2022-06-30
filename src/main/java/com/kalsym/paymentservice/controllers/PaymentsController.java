@@ -98,11 +98,11 @@ public class PaymentsController {
 
         }else {
             OrderConfirm res = paymentService.getOrderById(paymentRequest.getTransactionId());
-            LogUtil.info(systemTransactionId, location, "Order Service Return :   ", res.getTotal().toString());
+            LogUtil.info(systemTransactionId, location, "Order Service Return :   ", res.toString());
             StoreDetails storeDetails = paymentService.getStore(res.getStoreId());
 
             paymentRequest.setRegionCountryId(storeDetails.getRegionCountryId());
-            paymentRequest.setPaymentAmount(res.getTotal());
+            paymentRequest.setPaymentAmount(res.getOrderGroupDetails().getTotal());
             LogUtil.info(systemTransactionId, location, "Payment Amount  ", paymentRequest.getPaymentAmount().toString());
 
 

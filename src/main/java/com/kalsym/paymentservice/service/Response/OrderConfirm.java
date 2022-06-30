@@ -24,5 +24,6 @@ public class OrderConfirm {
     String created;
     String updated;
     String invoiceId;
+    OrderGroup orderGroupDetails;
 
 }
