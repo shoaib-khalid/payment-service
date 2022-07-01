@@ -1,0 +1,192 @@
+affinity: {}
+applicationProdProperties:
+  configmap:
+    application-prod.properties: >
+      server.port=1401
+
+
+      spring.jpa.hibernate.ddl-auto=none
+
+      spring.datasource.url=jdbc:mysql://my-release-mysql-primary.default.svc.cluster.local:3306/symplified
+
+      spring.datasource.username=root
+
+      spring.datasource.password=kalsym@123
+
+      spring.jpa.hibernate.naming.physical-strategy=org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+
+
+      logging.config=logback.xml
+
+
+      services.user-service.bulk_authorities.url =
+      https://api.symplified.it/user-service/v1/authorities/bulk
+
+      services.user-service.session_details =
+      https://api.symplified.it/user-service/v1/sessions/details
+
+      orderUrl=https://api.symplified.it/order-service/v1/
+
+      paymentRedirectUrl =https://payment.dev-pk.symplified.ai/payment-redirect?
+
+
+      goPayFastPaymentUrl=https://ipguat.apps.net.pk/Ecommerce/api/Transaction/PostTransaction
+
+      origin=dev-pk.symplified.ai
+
+      storeUrl=https://api.symplified.it/product-service/v1/
+  volumeMount:
+    - mountPath: /home/docker/Software/application-prod.properties
+      name: payment-service-approd-vol
+      subPath: application-prod.properties
+  volumes:
+    - configMap:
+        name: payment-service-approd-cm
+      name: payment-service-approd-vol
+applicationProperties:
+  configmap:
+    application.properties: >
+      # Default config (refrain from editting this config, please add in
+      application-prod.properties below)
+
+      spring.profiles.active=prod
+
+      proj.name=payment-service
+
+      build.version=@project.version@
+  volumeMount:
+    - mountPath: /home/docker/Software/application.properties
+      name: payment-service-ap-vol
+      subPath: application.properties
+  volumes:
+    - configMap:
+        name: payment-service-ap-cm
+      name: payment-service-ap-vol
+autoscaling:
+  enabled: false
+  maxReplicas: 100
+  minReplicas: 1
+  targetCPUUtilizationPercentage: 80
+fullnameOverride: ''
+image:
+  pullPolicy: Always
+  repository: kalsym/payment-service
+  tag: 2.2.15
+imagePullSecrets:
+  - name: kalsym-docker-hub
+ingress:
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  className: ''
+  enabled: true
+  hosts:
+    - host: api.symplified.it
+      paths:
+        - path: /payment-service/v1(/|$)(.*)
+          pathType: ImplementationSpecific
+    - host: api.dev-pk.symplified.ai
+      paths:
+        - path: /payment-service/v1(/|$)(.*)
+          pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        '0': api.symplified.it
+      secretName: secret-tls-it
+    - hosts:
+        '0': api.dev-pk.symplified.ai
+      secretName: secret-tls-ai
+logback:
+  configmap:
+    logback.xml: |
+      <?xml version="1.0" encoding="UTF-8"?>
+      <configuration>
+
+          <property name="LOGS" value="/home/docker/Software/logs/symplified" />
+          <property name="CDRS" value="/home/docker/Software/logs" />
+
+          <property resource="application.properties" />
+
+          <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+              <layout class="ch.qos.logback.classic.PatternLayout">
+                  <Pattern>
+                      %black(%d{ISO8601}) %highlight(%-5level) %yellow(%C{1.}): %msg%n%throwable
+                  </Pattern>
+              </layout>
+          </appender>
+
+          <appender name="APPLICATION" class="ch.qos.logback.core.rolling.RollingFileAppender">
+              <file>${LOGS}/payment-service/payment-service.log</file>
+              <append>true</append>
+              <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                  <!-- rollover daily and when the file reaches 10 MegaBytes -->
+                  <fileNamePattern>${LOGS}/payment-service/archived/payment-service-%d{yyyy-MM-dd}.%i.log
+                  </fileNamePattern>
+                  <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                      <maxFileSize>10MB</maxFileSize>
+                  </timeBasedFileNamingAndTriggeringPolicy>
+              </rollingPolicy>
+              <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+                  <charset>UTF-8</charset>
+                  <layout class="ch.qos.logback.classic.PatternLayout">
+                      <Pattern>%d %p %M %L [%t] - %m%n</Pattern>
+                  </layout>
+              </encoder>
+          </appender>
+
+          <appender name="CDR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+              <file>${CDRS}/payment-service-cdr.csv</file>
+              <append>true</append>
+              <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                  <!-- rollover daily and when the file reaches 10 MegaBytes -->
+                  <fileNamePattern>${CDRS}/payment-service/cdrs/cdr-%d{yyyy-MM-dd}.%i.csv
+                  </fileNamePattern>
+                  <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                      <maxFileSize>10MB</maxFileSize>
+                  </timeBasedFileNamingAndTriggeringPolicy>
+              </rollingPolicy>
+              <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+                  <charset>UTF-8</charset>
+                  <layout class="ch.qos.logback.classic.PatternLayout">
+                      <Pattern>%date{dd:MMM:yyyy;HH:mm:ss.SSS},%m%n</Pattern>
+                  </layout>
+              </encoder>
+          </appender>
+
+          <!-- LOG everything at INFO level -->
+          <root level="INFO">
+              <appender-ref ref="APPLICATION" />
+          </root>
+
+          <logger name="cdr" level="DEBUG" additivity="false">
+              <appender-ref ref="CDR" />
+          </logger>
+
+          <!-- LOG "com.baeldung*" at TRACE level -->
+          <!-- <logger name="application" level="DEBUG" additivity="true">
+              <appender-ref ref="APPLICATION" />
+          </logger> -->
+
+      </configuration>
+  volumeMount:
+    - mountPath: /home/docker/Software/logback.xml
+      name: payment-service-lgb-vol
+      subPath: logback.xml
+  volumes:
+    - configMap:
+        name: payment-service-lgb-cm
+      name: payment-service-lgb-vol
+nameOverride: ''
+nodeSelector: {}
+podAnnotations: {}
+podSecurityContext: {}
+replicaCount: 1
+resources: {}
+securityContext: {}
+service:
+  port: 1401
+  type: ClusterIP
+serviceAccount:
+  annotations: {}
+  create: false
+  name: ''
+tolerations: []
