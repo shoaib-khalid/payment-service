@@ -6,25 +6,20 @@ import com.kalsym.paymentservice.models.daos.PaymentOrder;
 import com.kalsym.paymentservice.models.daos.PaymentRequest;
 import com.kalsym.paymentservice.provider.MakePaymentResult;
 import com.kalsym.paymentservice.provider.ProcessResult;
-
 import com.kalsym.paymentservice.provider.SyncDispatcher;
 import com.kalsym.paymentservice.utils.DateTimeUtil;
 import com.kalsym.paymentservice.utils.LogUtil;
-
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import org.springframework.http.HttpMethod;
-
-import org.springframework.http.HttpHeaders;
-
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.Date;
@@ -37,15 +32,10 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
     private final String tokenUrl;
     private final String merchantId;
     private final String securedKey;
-    private final String grantType;
-    private final int connectTimeout;
     private final int providerId;
-    private final int waitTimeout;
+    private final String userAgent;
     private final String systemTransactionId;
     private PaymentRequest order;
-    private HashMap productMap;
-    private String atxProductCode = "";
-    private String sslVersion = "SSL";
     private String logprefix;
     private String location = "GoPayFastPaymentLink";
     private String host;
@@ -63,15 +53,11 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
         LogUtil.info(logprefix, location, "GoPayFast GeneratePaymentLink class initiliazed!!", "");
         this.generatelink_url = (String) config.get("paymentLink_url");
         this.tokenUrl = (String) config.get("tokenUrl");
-        this.connectTimeout = Integer.parseInt((String) config.get("connect_timeout"));
-        this.waitTimeout = Integer.parseInt((String) config.get("wait_timeout"));
         this.merchantId = (String) config.get("merchantId");
         this.securedKey = (String) config.get("securedKey");
-        this.grantType = (String) config.get("grantType");
-        productMap = (HashMap) config.get("productCodeMapping");
+        this.userAgent = (String) config.get("userAgent");
         this.host = (String) config.get("host");
         this.order = order;
-        this.sslVersion = (String) config.get("ssl_version");
         this.providerId = providerId;
         this.paymentRedirectUrl = (String) config.get("paymentRedirectUrl");
         this.key = (String) config.get("key");
@@ -141,6 +127,9 @@ public class GoPayFastPaymentLink extends SyncDispatcher {
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/x-www-form-urlencoded");
+        headers.add("Host", host);
+        headers.add("User-Agent", userAgent);
+        headers.add("Cache-Control", "no-cache");
 
         HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(postParameters, headers);
 
