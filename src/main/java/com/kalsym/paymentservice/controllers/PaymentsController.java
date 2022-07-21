@@ -96,7 +96,7 @@ public class PaymentsController {
             paymentRequest.setRegionCountryId(res.getRegionCountryId());
             paymentRequest.setPaymentAmount(res.getTotal());
 
-        }else {
+        } else {
             OrderConfirm res = paymentService.getOrderById(paymentRequest.getTransactionId());
             LogUtil.info(systemTransactionId, location, "Order Service Return :   ", res.toString());
             StoreDetails storeDetails = paymentService.getStore(res.getStoreId());
@@ -316,7 +316,7 @@ public class PaymentsController {
             if (status_id == 1) {
                 if (order_id.startsWith("G")) {
                     OrderConfirm res = paymentService.groupOrderUpdateStatus(order_id, "PAYMENT_CONFIRMED", "", msg);
-                }else {
+                } else {
                     OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_CONFIRMED", "", msg);
                 }
                 String spErrorCode = String.valueOf(status_id);
@@ -355,8 +355,12 @@ public class PaymentsController {
                 deliveryOrder.setSpOrderId(transaction_id);
                 deliveryOrder.setStatusDescription(statusDescription);
                 paymentOrdersRepository.save(deliveryOrder);
-                OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_FAILED", "", msg);
 
+                if (order_id.startsWith("G")) {
+                    OrderConfirm res = paymentService.groupOrderUpdateStatus(order_id, "PAYMENT_FAILED", "", msg);
+                } else {
+                    OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_FAILED", "", msg);
+                }
                 //fail to get price
                 return "<html>\n" + "OK" + "\n" + "</html>";
             }
