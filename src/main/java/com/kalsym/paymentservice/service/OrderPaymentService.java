@@ -97,7 +97,7 @@ public class OrderPaymentService {
 //
             if (res != null) {
                 OrderConfirmData orderConfirm = (OrderConfirmData) res.getBody();
-                logger.debug("Store orders group (liveChatOrdersGroupName) received: {}, against orderId: {}", orderConfirm.getData().getId(), orderId);
+//                logger.debug("Store orders group (liveChatOrdersGroupName) received: {}, against orderId: {}", orderConfirm.getData().getId(), orderId);
                 return orderConfirm.getData();
             } else {
                 logger.warn("Cannot get Order against orderId: {}", orderId);
