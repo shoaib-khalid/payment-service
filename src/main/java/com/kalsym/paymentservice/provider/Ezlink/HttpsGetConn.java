@@ -31,7 +31,7 @@ import javax.net.ssl.X509TrustManager;
  */
 public class HttpsGetConn {
     
-    public static HttpResult SendHttpsRequest(String httpMethod, String refId, String targetUrl, HashMap httpHeader, String requestBody, int connectTimeout, int waitTimeout) {
+    public static HttpResult SendHttpsRequest(String httpMethod, String refId, String targetUrl, HashMap httpHeader, int connectTimeout, int waitTimeout) {
         HttpResult response = new HttpResult();
         String loglocation = "HttpsConn";
         
@@ -96,7 +96,7 @@ public class HttpsGetConn {
             }
             in.close();
 
-            LogUtil.info(refId, loglocation, "Response of topup :" + httpMsgResp.toString(), "");
+            LogUtil.info(refId, loglocation, "Response :::::" + httpMsgResp.toString(), "");
 
             response.resultCode = 0;
             response.responseString = httpMsgResp.toString();

@@ -6,6 +6,7 @@ import com.kalsym.paymentservice.models.daos.PaymentOrder;
 import com.kalsym.paymentservice.models.daos.PaymentRequest;
 import com.kalsym.paymentservice.provider.MakePaymentResult;
 import com.kalsym.paymentservice.provider.ProcessResult;
+import com.kalsym.paymentservice.provider.QueryPaymentResult;
 import com.kalsym.paymentservice.provider.SpCallbackResult;
 import com.kalsym.paymentservice.repositories.*;
 import com.kalsym.paymentservice.service.OrderPaymentService;
@@ -372,6 +373,47 @@ public class PaymentsController {
         }
 
     }
+
+
+    @GetMapping(path = {"/queryOrderStatus/{orderId}"}, name = "payments-sp-query-status")
+    public ResponseEntity<HttpReponse> queryOrderStatus(@PathVariable("orderId") String orderId) {
+//        String logprefix = request.getRequestURI() + " ";
+        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
+        HttpReponse response = new HttpReponse();
+
+        String systemTransactionId = StringUtility.CreateRefID("CB");
+//        String IP = request.getRemoteAddr();
+        PaymentOrder order = paymentOrdersRepository.findByClientTransactionId(orderId);
+
+        if (!order.getStatus().equals("PAID")) {
+
+            ProcessRequest process = new ProcessRequest(systemTransactionId, order, providerRatePlanRepository, providerConfigurationRepository, providerRepository);
+            ProcessResult processResult = process.QueryPaymentStatus();
+
+            QueryPaymentResult res = (QueryPaymentResult) processResult.returnObject;
+
+            order.setPaymentChannel(res.orderFound.getPaymentChannel());
+            order.setStatus(res.orderFound.getStatus());
+            order.setSpOrderId(res.orderFound.getSpOrderId());
+            paymentOrdersRepository.save(order);
+            LogUtil.info(systemTransactionId, location, "ProcessRequest finish. resultCode:" + processResult.resultCode, "");
+            response.setSuccessStatus(HttpStatus.OK);
+            if (order.getStatus().equals("PAID")) {
+                if (orderId.startsWith("G")) {
+                    OrderConfirm updateOrderPaymentStatus = paymentService.groupOrderUpdateStatus(orderId, "PAYMENT_CONFIRMED", "", order.getStatusDescription());
+                } else {
+                    OrderConfirm updateOrderPaymentStatus = paymentService.updateStatus(orderId, "PAYMENT_CONFIRMED", "", order.getStatusDescription());
+                }
+            }
+            return ResponseEntity.status(response.getStatus()).body(response);
+        } else {
+            response.setSuccessStatus(HttpStatus.OK);
+            LogUtil.info(systemTransactionId, location, "Order Status is " + order.getStatus(), "");
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+
+    }
+
 
     public String getMd5(String data) {
         try {

@@ -14,6 +14,8 @@ import java.util.List;
 public interface PaymentOrdersRepository extends JpaRepository<PaymentOrder, String> {
     
     public PaymentOrder findBySpIdAndSpOrderId(Integer spId, String spOrderId );
+    public List<PaymentOrder> findAllByStatus(String status );
+
     
     public PaymentOrder findBySystemTransactionId(String SystemTransactionId );
     public PaymentOrder findByClientTransactionIdAndStatus(String transactionId, String status );

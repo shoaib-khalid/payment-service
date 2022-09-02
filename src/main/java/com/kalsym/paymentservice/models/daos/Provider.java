@@ -31,6 +31,7 @@ public class Provider implements Serializable {
     String contactNo;
     String contactPerson;
     String makePaymentClassName;
+    String queryOrderStatusClassName;
     String spCallbackClassName;
     String regionCountryId;
 }

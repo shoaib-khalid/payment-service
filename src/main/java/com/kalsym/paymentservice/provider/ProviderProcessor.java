@@ -14,8 +14,6 @@ import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import com.google.gson.JsonObject;
-
 /**
  * @author taufik
  */
@@ -82,6 +80,9 @@ public class ProviderProcessor {
             } else if (functionName.equalsIgnoreCase("SpCallback")) {
                 className = provider.getSpCallbackClassName();
                 LogUtil.info(logprefix, location, "SpCallbackClassname for SP ID:" + provider.getId() + " -> " + className, "");
+            } else if (functionName.equalsIgnoreCase("QueryPaymentStatus")) {
+                className = provider.getQueryOrderStatusClassName();
+                LogUtil.info(logprefix, location, "SpCallbackClassname for SP ID:" + provider.getId() + " -> " + className, "");
             }
             Class classObject = Class.forName(className);
             DispatchRequest reqFactoryObj = null;
@@ -94,6 +95,8 @@ public class ProviderProcessor {
                 if (functionName.equalsIgnoreCase("MakePayment")) {
                     reqFactoryObj = (DispatchRequest) cons[0].newInstance(latch, providerConfig, order, this.sysTransactionId, provider.getId());
                 } else if (functionName.equalsIgnoreCase("SpCallback")) {
+                    reqFactoryObj = (DispatchRequest) cons[0].newInstance(latch, providerConfig, this.requestBody, this.sysTransactionId);
+                } else if (functionName.equalsIgnoreCase("QueryPaymentStatus")) {
                     reqFactoryObj = (DispatchRequest) cons[0].newInstance(latch, providerConfig, this.requestBody, this.sysTransactionId);
                 }
             } catch (Exception e) {
@@ -129,8 +132,10 @@ public class ProviderProcessor {
             } else if (functionName.equalsIgnoreCase("SpCallback") && spResponse.resultCode == 0) {
                 SpCallbackResult callbackResult = (SpCallbackResult) spResponse.returnObject;
                 response.returnObject = callbackResult;
+            } else if (functionName.equalsIgnoreCase("QueryPaymentStatus")) {
+                response.returnObject = spResponse.returnObject;
+                response.resultCode = spResponse.resultCode;
             }
-
 
             return response;
         } catch (Exception exp) {

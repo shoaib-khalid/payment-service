@@ -55,7 +55,7 @@ public class QueryPayment extends SyncDispatcher {
         httpHeader.put("X-DV-Auth-Token", this.queryOrder_token);
         httpHeader.put("Connection", "close");
         String url = this.queryOrder_url + "?order_id="+this.spOrderId;
-        HttpResult httpResult = HttpsGetConn.SendHttpsRequest("GET", systemTransactionId, url, httpHeader, null, this.connectTimeout, this.waitTimeout);
+        HttpResult httpResult = HttpsGetConn.SendHttpsRequest("GET", systemTransactionId, url, httpHeader, this.connectTimeout, this.waitTimeout);
         if (httpResult.resultCode==0) {
             LogUtil.info(logprefix, location, "Request successful", "");
             response.resultCode=0;            
