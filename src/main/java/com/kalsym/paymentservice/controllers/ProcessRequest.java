@@ -77,24 +77,24 @@ public class ProcessRequest {
         List<ProviderRatePlan> providerRatePlanList = providerRatePlanRepository.findByIdProductCodeAndProvider(order.getRegionCountryId());
         System.err.println("Test:" + providerRatePlanList.size());
         ProcessResult result = new ProcessResult();
-        for (int i = 0; i < providerRatePlanList.size(); i++) {
-            //try every provider                       
-            LogUtil.info(logprefix, location, "ProviderId:" + providerRatePlanList.get(i).getProvider().getId() + " productCode:" + order.getProductCode(), "");
-            Optional<Provider> provider = providerRepository.findByIdAndRegionCountryId(providerRatePlanList.get(i).getProvider().getId(), order.getRegionCountryId());
-            List<ProviderConfiguration> providerConfigList = providerConfigurationRepository.findByIdSpId(providerRatePlanList.get(i).getProvider().getId());
+        for (ProviderRatePlan providerRatePlan : providerRatePlanList) {
+            //try every provider
+            LogUtil.info(logprefix, location, "ProviderId:" + providerRatePlan.getProvider().getId() + " productCode:" + order.getProductCode(), "");
+            Optional<Provider> provider = providerRepository.findByIdAndRegionCountryId(providerRatePlan.getProvider().getId(), order.getRegionCountryId());
+            List<ProviderConfiguration> providerConfigList = providerConfigurationRepository.findByIdSpId(providerRatePlan.getProvider().getId());
             HashMap<String, String> config = new HashMap<>();
-            for (int j = 0; j < providerConfigList.size(); j++) {
-                String fieldName = providerConfigList.get(j).getId().getConfigField();
-                String fieldValue = providerConfigList.get(j).getConfigValue();
+            for (ProviderConfiguration providerConfiguration : providerConfigList) {
+                String fieldName = providerConfiguration.getId().getConfigField();
+                String fieldValue = providerConfiguration.getConfigValue();
                 config.put(fieldName, fieldValue);
             }
             ProviderProcessor processor = new ProviderProcessor(this, sysTransactionId, provider.get(), config, order, "MakePayment");
             result = processor.startProcess();
 
-            LogUtil.info(logprefix, location, "ProviderId:" + providerRatePlanList.get(i).getProvider().getId() + " Result isSuccess:" + result.isSuccess + " resultCode:" + result.resultCode + " returnObject:" + result.returnObject, "");
+            LogUtil.info(logprefix, location, "ProviderId:" + providerRatePlan.getProvider().getId() + " Result isSuccess:" + result.isSuccess + " resultCode:" + result.resultCode + " returnObject:" + result.returnObject, "");
 
             //attempt next provider if fail
-            if (result.isSuccess == true) {
+            if (result.isSuccess) {
                 break;
             }
         }
@@ -110,9 +110,9 @@ public class ProcessRequest {
         Optional<Provider> provider = providerRepository.findById(paymentOrder.getSpId());
         List<ProviderConfiguration> providerConfigList = providerConfigurationRepository.findByIdSpId(paymentOrder.getSpId());
         HashMap<String, String> config = new HashMap<String, String>();
-        for (int j = 0; j < providerConfigList.size(); j++) {
-            String fieldName = providerConfigList.get(j).getId().getConfigField();
-            String fieldValue = providerConfigList.get(j).getConfigValue();
+        for (ProviderConfiguration providerConfiguration : providerConfigList) {
+            String fieldName = providerConfiguration.getId().getConfigField();
+            String fieldValue = providerConfiguration.getConfigValue();
             config.put(fieldName, fieldValue);
         }
         ProviderProcessor dthread = new ProviderProcessor(this, sysTransactionId, provider.get(), config, paymentOrder, "QueryPaymentStatus");

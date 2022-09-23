@@ -23,4 +23,5 @@ public class PaymentRequest {
    String storeName;
    String email;
    String regionCountryId;
+   String paymentChannel;
 }
