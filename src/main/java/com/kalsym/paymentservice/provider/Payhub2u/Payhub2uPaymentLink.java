@@ -43,7 +43,7 @@ public class Payhub2uPaymentLink extends SyncDispatcher {
         this.merchantId = (String) config.get("payhub2u_MerchantId");
         this.order = order;
         this.callback_url = (String) config.get("callback");
-        this.providerId = (Integer) config.get("providerId");
+        this.providerId = providerId;
 
     }
 
