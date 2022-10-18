@@ -78,6 +78,8 @@ public class PaymentsController {
 
         LogUtil.info(logprefix, location, "", "");
         paymentRequest.setPaymentAmount(null);
+        if (paymentRequest.getChannel() == null)
+            paymentRequest.setChannel("DELIVERIN");
 
         //generate transaction id
         String systemTransactionId = StringUtility.CreateRefID("PY");
