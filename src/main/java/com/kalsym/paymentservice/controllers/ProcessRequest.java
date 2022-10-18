@@ -75,7 +75,13 @@ public class ProcessRequest {
         p.setRegionCountryId(order.getRegionCountryId());
 //        List<ProviderRatePlan> providerRatePlanList = providerRatePlanRepository.findByIdProductCode(order.getProductCode());
 //        List<ProviderRatePlan> providerRatePlanList = providerRatePlanRepository.findByIdProductCodeAndProvider(order.getRegionCountryId());
-        List<ProviderRatePlan> providerRatePlanList = providerRatePlanRepository.findByIdProductCodeAndProviderAndChannel(order.getRegionCountryId(), order.getChannel());
+        String channel;
+        if (order.getChannel().isEmpty()) {
+            channel = "DELIVERIN";
+        } else {
+            channel = order.getChannel();
+        }
+        List<ProviderRatePlan> providerRatePlanList = providerRatePlanRepository.findByIdProductCodeAndProviderAndChannel(order.getRegionCountryId(), channel);
         ProcessResult result = new ProcessResult();
         for (int i = 0; i < providerRatePlanList.size(); i++) {
             //try every provider                       
