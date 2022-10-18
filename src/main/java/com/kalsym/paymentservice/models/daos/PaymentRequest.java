@@ -22,5 +22,7 @@ public class PaymentRequest {
    String systemTransactionId;
    String storeName;
    String email;
+   String phoneNo;
    String regionCountryId;
+   String channel;
 }

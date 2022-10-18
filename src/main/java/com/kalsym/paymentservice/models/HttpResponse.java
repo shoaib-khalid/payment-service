@@ -16,9 +16,9 @@ import org.springframework.http.HttpStatus;
 @Setter
 @JsonInclude(Include.NON_NULL)
 @NoArgsConstructor
-public class HttpReponse {
+public class HttpResponse {
 
-    public HttpReponse(String requestUri) {
+    public HttpResponse(String requestUri) {
         this.timestamp = DateTimeUtil.currentTimestamp();
         this.path = requestUri;
     }

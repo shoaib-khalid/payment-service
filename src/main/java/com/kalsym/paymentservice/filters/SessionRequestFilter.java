@@ -7,13 +7,12 @@ import com.kalsym.paymentservice.utils.LogUtil;
 import com.kalsym.paymentservice.VersionHolder;
 import com.kalsym.paymentservice.security.model.Auth;
 import com.kalsym.paymentservice.security.model.MySQLUserDetails;
-import com.kalsym.paymentservice.models.HttpReponse;
+import com.kalsym.paymentservice.models.HttpResponse;
 
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Optional;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -65,9 +64,9 @@ public class SessionRequestFilter extends OncePerRequestFilter {
 
         if (accessToken != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             //Logger.application.info(Logger.pattern, VersionHolder.VERSION, logprefix, "sessionId: " + sessionId, "");
-            ResponseEntity<HttpReponse> authResponse = null;
+            ResponseEntity<HttpResponse> authResponse = null;
             try {
-                authResponse = restTemplate.postForEntity(userServiceSessionDetailsUrl, accessToken, HttpReponse.class);
+                authResponse = restTemplate.postForEntity(userServiceSessionDetailsUrl, accessToken, HttpResponse.class);
             
                 Date expiryTime = null;
 

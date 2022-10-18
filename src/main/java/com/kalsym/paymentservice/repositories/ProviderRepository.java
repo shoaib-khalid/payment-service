@@ -15,5 +15,6 @@ import java.util.Optional;
 public interface ProviderRepository extends JpaRepository<Provider, Integer> {
 
     Optional<Provider> findByIdAndRegionCountryId(Integer id , String regionCountryId );
+    Optional<Provider> findByRegionCountryIdAndChannel(String regionCountryId , String channel );
 
 }

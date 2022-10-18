@@ -1,9 +1,12 @@
 package com.kalsym.paymentservice.controllers;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
-import com.kalsym.paymentservice.models.HttpReponse;
+import com.kalsym.paymentservice.models.HttpResponse;
 import com.kalsym.paymentservice.models.daos.PaymentOrder;
 import com.kalsym.paymentservice.models.daos.PaymentRequest;
+import com.kalsym.paymentservice.models.daos.Provider;
 import com.kalsym.paymentservice.provider.MakePaymentResult;
 import com.kalsym.paymentservice.provider.ProcessResult;
 import com.kalsym.paymentservice.provider.QueryPaymentResult;
@@ -16,33 +19,21 @@ import com.kalsym.paymentservice.service.Response.StoreDetails;
 import com.kalsym.paymentservice.utils.DateTimeUtil;
 import com.kalsym.paymentservice.utils.LogUtil;
 import com.kalsym.paymentservice.utils.StringUtility;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
-import org.springframework.http.MediaType;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.apache.http.NameValuePair;
-import org.springframework.web.client.RestTemplate;
 
 
-import javax.net.ssl.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import javax.websocket.server.PathParam;
 import java.math.BigInteger;
-import java.net.SocketTimeoutException;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
 import java.util.*;
-import java.io.*;
 
 /**
  * @author Sarosh
@@ -80,10 +71,10 @@ public class PaymentsController {
     String origin;
 
     @PostMapping(path = {"/makePayment"}, name = "payments-make-payment")
-    public ResponseEntity<HttpReponse> makePayment(HttpServletRequest request, @Valid @RequestBody PaymentRequest paymentRequest) {
+    public ResponseEntity<HttpResponse> makePayment(HttpServletRequest request, @Valid @RequestBody PaymentRequest paymentRequest) {
         String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
-        HttpReponse response = new HttpReponse(request.getRequestURI());
+        HttpResponse response = new HttpResponse(request.getRequestURI());
 
         LogUtil.info(logprefix, location, "", "");
         paymentRequest.setPaymentAmount(null);
@@ -108,6 +99,8 @@ public class PaymentsController {
 
 
         }
+
+        Optional<Provider> provider = providerRepository.findByRegionCountryIdAndChannel(paymentRequest.getRegionCountryId(), paymentRequest.getChannel());
 
 
         LogUtil.info(systemTransactionId, location, "PaymentOrders Id ", paymentRequest.getTransactionId());
@@ -151,11 +144,11 @@ public class PaymentsController {
 
     //TODO : Proper way callback in testing
     @GetMapping(path = {"/payment-redirect"}, name = "payments-sp-callback")
-    public ResponseEntity<HttpReponse> call(HttpServletRequest request, @RequestParam(name = "name", required = false, defaultValue = "") String name, @RequestParam(name = "email", required = false, defaultValue = "") String email, @RequestParam(name = "phone", required = false, defaultValue = "") String phone, @RequestParam(name = "transaction_amount", required = false, defaultValue = "") String transaction_amount, @RequestParam(name = "status_id", required = false, defaultValue = "") int status_id, @RequestParam(name = "order_id", required = false, defaultValue = "") String order_id, @RequestParam(name = "transaction_id", required = false, defaultValue = "") String transaction_id, @RequestParam(name = "hash", required = false, defaultValue = "") String hash, @RequestParam(name = "basket_id", required = false, defaultValue = "") String basket_id, @RequestParam(name = "Rdv_Message_Key", required = false, defaultValue = "") String Rdv_Message_Key, @RequestParam(name = "PaymentType", required = false, defaultValue = "") String PaymentType, @RequestParam(name = "PaymentName", required = false, defaultValue = "") String PaymentName, @RequestParam(name = "validation_hash", defaultValue = "") String validation_hash, @RequestParam(name = "err_code", required = false) String err_code, @RequestParam(name = "order_date", required = false, defaultValue = "") String order_date, @RequestParam(name = "payment_channel", required = false, defaultValue = "") String payment_channel, @RequestParam(name = "err_msg", required = false, defaultValue = "") String err_msg, @RequestParam(name = "msg", required = false, defaultValue = "") String msg) {
+    public ResponseEntity<HttpResponse> call(HttpServletRequest request, @RequestParam(name = "name", required = false, defaultValue = "") String name, @RequestParam(name = "email", required = false, defaultValue = "") String email, @RequestParam(name = "phone", required = false, defaultValue = "") String phone, @RequestParam(name = "transaction_amount", required = false, defaultValue = "") String transaction_amount, @RequestParam(name = "status_id", required = false, defaultValue = "") int status_id, @RequestParam(name = "order_id", required = false, defaultValue = "") String order_id, @RequestParam(name = "transaction_id", required = false, defaultValue = "") String transaction_id, @RequestParam(name = "hash", required = false, defaultValue = "") String hash, @RequestParam(name = "basket_id", required = false, defaultValue = "") String basket_id, @RequestParam(name = "Rdv_Message_Key", required = false, defaultValue = "") String Rdv_Message_Key, @RequestParam(name = "PaymentType", required = false, defaultValue = "") String PaymentType, @RequestParam(name = "PaymentName", required = false, defaultValue = "") String PaymentName, @RequestParam(name = "validation_hash", defaultValue = "") String validation_hash, @RequestParam(name = "err_code", required = false) String err_code, @RequestParam(name = "order_date", required = false, defaultValue = "") String order_date, @RequestParam(name = "payment_channel", required = false, defaultValue = "") String payment_channel, @RequestParam(name = "err_msg", required = false, defaultValue = "") String err_msg, @RequestParam(name = "msg", required = false, defaultValue = "") String msg) {
 
         String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
-        HttpReponse response = new HttpReponse(request.getRequestURI());
+        HttpResponse response = new HttpResponse(request.getRequestURI());
         System.err.println("NAME " + validation_hash);
 
         LogUtil.info(logprefix, location, "receive callback from Provider", "");
@@ -306,7 +299,7 @@ public class PaymentsController {
                              @RequestParam(required = false, defaultValue = "") String amount, @RequestParam(required = false, defaultValue = "") String hash, @RequestParam(required = false, defaultValue = "") int status_id, @RequestParam(required = false, defaultValue = "") String order_id, @RequestParam(required = false, defaultValue = "") String transaction_id, @RequestParam(required = false, defaultValue = "") String msg, @RequestParam(required = false, defaultValue = "") String payment_channel) {
         String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
-        HttpReponse response = new HttpReponse(request.getRequestURI());
+        HttpResponse response = new HttpResponse(request.getRequestURI());
 
         LogUtil.info(logprefix, location, "Receive returnUrl ", "Name: " + name + " email: " + email + " phone: " + phone + " amount:" + amount + " hash :" + hash + " orderId: " + order_id + " transactionId: " + transaction_id + " msg: " + msg);
         String systemTransactionId = StringUtility.CreateRefID("CB");
@@ -321,8 +314,6 @@ public class PaymentsController {
                     OrderConfirm res = paymentService.updateStatus(order_id, "PAYMENT_CONFIRMED", "", msg);
                 }
                 String spErrorCode = String.valueOf(status_id);
-                String statusDescription = msg;
-                String paymentTransactionId = transaction_id;
                 String clientTransactionId = order_id;
                 String status = "PAID";
                 PaymentOrder deliveryOrder = paymentOrdersRepository.findByClientTransactionIdAndStatus(order_id, "PENDING");
@@ -334,10 +325,10 @@ public class PaymentsController {
                     deliveryOrder.setUpdatedDate(DateTimeUtil.currentTimestamp());
                     deliveryOrder.setSpErrorCode(spErrorCode);
                     deliveryOrder.setSpOrderId(transaction_id);
-                    deliveryOrder.setStatusDescription(statusDescription);
+                    deliveryOrder.setStatusDescription(msg);
                     paymentOrdersRepository.save(deliveryOrder);
                 } else {
-                    LogUtil.info(systemTransactionId, location, "DeliveryOrder not found for paymentTransactionId:" + paymentTransactionId, "");
+                    LogUtil.info(systemTransactionId, location, "DeliveryOrder not found for paymentTransactionId:" + transaction_id, "");
                 }
                 response.setSuccessStatus(HttpStatus.OK);
 //                response.setData(processResult.returnObject);
@@ -347,14 +338,13 @@ public class PaymentsController {
                 LogUtil.info(systemTransactionId, location, "DeliveryOrder found. Update status and updated datetime", "");
                 PaymentOrder deliveryOrder = paymentOrdersRepository.findByClientTransactionIdAndStatus(order_id, "PENDING");
                 String spErrorCode = String.valueOf(status_id);
-                String statusDescription = msg;
                 //TODO : Send Payment Failed Status
                 deliveryOrder.setStatus("FAILED");
                 deliveryOrder.setPaymentChannel(payment_channel);
                 deliveryOrder.setUpdatedDate(DateTimeUtil.currentTimestamp());
                 deliveryOrder.setSpErrorCode(spErrorCode);
                 deliveryOrder.setSpOrderId(transaction_id);
-                deliveryOrder.setStatusDescription(statusDescription);
+                deliveryOrder.setStatusDescription(msg);
                 paymentOrdersRepository.save(deliveryOrder);
 
                 if (order_id.startsWith("G")) {
@@ -376,10 +366,10 @@ public class PaymentsController {
 
 
     @GetMapping(path = {"/queryOrderStatus/{orderId}"}, name = "payments-sp-query-status")
-    public ResponseEntity<HttpReponse> queryOrderStatus(@PathVariable("orderId") String orderId) {
+    public ResponseEntity<HttpResponse> queryOrderStatus(@PathVariable("orderId") String orderId) {
 //        String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
-        HttpReponse response = new HttpReponse();
+        HttpResponse response = new HttpResponse();
 
         String systemTransactionId = StringUtility.CreateRefID("CB");
 //        String IP = request.getRemoteAddr();
@@ -415,28 +405,99 @@ public class PaymentsController {
     }
 
 
-    public String getMd5(String data) {
-        try {
+    @PostMapping(path = {"/payhub2u/callback"}, name = "payments-sp-callback")
+    public ResponseEntity<HttpResponse> payhub2uCallback(HttpServletRequest request, @RequestBody Optional<CallbackResponse> payment) {
+        String logprefix = request.getRequestURI() + " ";
+        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
+        HttpResponse response = new HttpResponse(request.getRequestURI());
 
+        String systemTransactionId = StringUtility.CreateRefID("CB");
+        String host = request.getRemoteHost();
+        if (!payment.isPresent()) {
+            response.setSuccessStatus(HttpStatus.NOT_FOUND);
+            LogUtil.info(systemTransactionId, location, "Callback Body Is Empty ", "");
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
 
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            // digest() method is called to calculate message digest
-            //  of an input digest() return array of byte
-            byte[] messageDigest = md.digest(data.getBytes());
+        PaymentOrder order = paymentOrdersRepository.findByClientTransactionId(payment.get().getTransactionId());
 
-            // Convert byte array into signum representation
-            BigInteger no = new BigInteger(1, messageDigest);
-
-            // Convert message digest into hex value
-            String hashtext = no.toString(16);
-            while (hashtext.length() < 32) {
-                hashtext = "0" + hashtext;
+        if (order.getStatus().equals("PENDING")) {
+            if (payment.get().getStatus().equals("PAID")) {
+                if (payment.get().getAmount().equals(order.getPaymentAmount())) {
+                    if (order.getClientTransactionId().startsWith("G")) {
+                        OrderConfirm res = paymentService.groupOrderUpdateStatus(order.getClientTransactionId(), "PAYMENT_CONFIRMED", "", payment.get().getStatus());
+                    } else {
+                        OrderConfirm res = paymentService.updateStatus(order.getClientTransactionId(), "PAYMENT_CONFIRMED", "", payment.get().getStatus());
+                    }
+                    String spErrorCode = payment.get().getStatus();
+                    String statusDescription = payment.get().getStatus();
+                    String paymentTransactionId = payment.get().getId();
+                    String clientTransactionId = payment.get().getTransactionId();
+                    String status = "PAID";
+                    PaymentOrder deliveryOrder = paymentOrdersRepository.findByClientTransactionIdAndStatus(payment.get().getTransactionId(), "PENDING");
+                    if (deliveryOrder != null) {
+                        clientTransactionId = deliveryOrder.getClientTransactionId();
+                        LogUtil.info(systemTransactionId, location, "DeliveryOrder found. Update status and updated datetime", "");
+                        deliveryOrder.setStatus(status);
+                        deliveryOrder.setPaymentChannel(payment.get().getBank());
+                        deliveryOrder.setUpdatedDate(DateTimeUtil.currentTimestamp());
+                        deliveryOrder.setSpErrorCode(spErrorCode);
+                        deliveryOrder.setSpOrderId(payment.get().getId());
+                        deliveryOrder.setStatusDescription(statusDescription);
+                        paymentOrdersRepository.save(deliveryOrder);
+                    } else {
+                        LogUtil.info(systemTransactionId, location, "DeliveryOrder not found for paymentTransactionId:" + paymentTransactionId, "");
+                    }
+                    response.setSuccessStatus(HttpStatus.OK);
+//                response.setData(processResult.returnObject);
+                    LogUtil.info(systemTransactionId, location, "Response with " + HttpStatus.OK, "");
+                    response.setSuccessStatus(HttpStatus.OK);
+                    return ResponseEntity.status(response.getStatus()).body(response);
+                } else {
+                    if (order.getClientTransactionId().startsWith("G")) {
+                        OrderConfirm res = paymentService.groupOrderUpdateStatus(order.getClientTransactionId(), "PAYMENT_FAILED", "", "Transaction Amount Does Not Match");
+                    } else {
+                        OrderConfirm res = paymentService.updateStatus(order.getClientTransactionId(), "PAYMENT_FAILED", "", "Transaction Amount Does Not Match");
+                    }
+                    response.setSuccessStatus(HttpStatus.OK);
+                    return ResponseEntity.status(response.getStatus()).body(response);
+                }
+            } else {
+                if (order.getClientTransactionId().startsWith("G")) {
+                    OrderConfirm res = paymentService.groupOrderUpdateStatus(order.getClientTransactionId(), "PAYMENT_FAILED", "", payment.get().getStatus());
+                } else {
+                    OrderConfirm res = paymentService.updateStatus(order.getClientTransactionId(), "PAYMENT_FAILED", "", payment.get().getStatus());
+                }
             }
-            return hashtext;
+            response.setSuccessStatus(HttpStatus.OK);
+            return ResponseEntity.status(response.getStatus()).body(response);
+        } else {
+            response.setSuccessStatus(HttpStatus.OK);
+            LogUtil.info(systemTransactionId, location, "Order Status is " + order.getStatus(), "");
 
-        } catch (Exception exception) {
-            return null;
-
+            return ResponseEntity.status(response.getStatus()).body(response);
         }
     }
+
+    @Getter
+    @Setter
+    public static class CallbackResponse {
+
+        String id;
+        String transactionId;
+        String status;
+        String provider;
+        String bank;
+        String bankName;
+        Double chargeAmount;
+        Double totalAmount;
+        Double amount;
+
+        public String toString() {
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            return gson.toJson(this);
+        }
+
+    }
+
 }

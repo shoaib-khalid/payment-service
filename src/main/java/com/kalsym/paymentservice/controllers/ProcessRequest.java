@@ -74,8 +74,8 @@ public class ProcessRequest {
         Provider p = new Provider();
         p.setRegionCountryId(order.getRegionCountryId());
 //        List<ProviderRatePlan> providerRatePlanList = providerRatePlanRepository.findByIdProductCode(order.getProductCode());
-        List<ProviderRatePlan> providerRatePlanList = providerRatePlanRepository.findByIdProductCodeAndProvider(order.getRegionCountryId());
-        System.err.println("Test:" + providerRatePlanList.size());
+//        List<ProviderRatePlan> providerRatePlanList = providerRatePlanRepository.findByIdProductCodeAndProvider(order.getRegionCountryId());
+        List<ProviderRatePlan> providerRatePlanList = providerRatePlanRepository.findByIdProductCodeAndProviderAndChannel(order.getRegionCountryId(), order.getChannel());
         ProcessResult result = new ProcessResult();
         for (int i = 0; i < providerRatePlanList.size(); i++) {
             //try every provider                       
@@ -132,7 +132,7 @@ public class ProcessRequest {
         }
 
         ProcessResult response = new ProcessResult();
-        response.resultCode =result.resultCode ;
+        response.resultCode = result.resultCode;
         response.returnObject = result.returnObject;
         LogUtil.info(logprefix, location, "SubmitOrder finish. resultCode:" + response.resultCode, " queryOrderResult:" + queryOrderResult);
         return response;

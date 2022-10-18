@@ -1,21 +1,24 @@
 /*
  * Here comes the text of your license
- * Each line should be prefixed with  * 
+ * Each line should be prefixed with  *
  */
 package com.kalsym.paymentservice.models.daos;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- *
  * @author user
  */
 @Entity
@@ -25,8 +28,9 @@ import lombok.Setter;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PaymentOrder {
-    
-    @Id @GeneratedValue(strategy=GenerationType.IDENTITY)
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     String customerId;
     String productCode;
@@ -47,22 +51,13 @@ public class PaymentOrder {
 
     Double paymentAmount;
 
-    @Override
+    String customerName;
+    String phoneNo;
+    String email;
+    String callbackUrl;
     public String toString() {
-        return "PaymentOrder{" +
-                "id=" + id +
-                ", customerId=" + customerId +
-                ", productCode='" + productCode + '\'' +
-                ", clientTransactionId='" + clientTransactionId + '\'' +
-                ", systemTransactionId='" + systemTransactionId + '\'' +
-                ", itemDescription='" + itemDescription + '\'' +
-                ", spId=" + spId +
-                ", spOrderId='" + spOrderId + '\'' +
-                ", spErrorCode='" + spErrorCode + '\'' +
-                ", createdDate='" + createdDate + '\'' +
-                ", status='" + status + '\'' +
-                ", statusDescription='" + statusDescription + '\'' +
-                ", updatedDate='" + updatedDate + '\'' +
-                '}';
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        return gson.toJson(this);
     }
+
 }

@@ -34,4 +34,5 @@ public class Provider implements Serializable {
     String queryOrderStatusClassName;
     String spCallbackClassName;
     String regionCountryId;
+    String channel;
 }
