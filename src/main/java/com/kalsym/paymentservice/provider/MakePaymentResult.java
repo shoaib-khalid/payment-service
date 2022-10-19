@@ -28,4 +28,5 @@ public class MakePaymentResult {
     public String description;
 
     public String hashDate;
+    public String clientId;
 }

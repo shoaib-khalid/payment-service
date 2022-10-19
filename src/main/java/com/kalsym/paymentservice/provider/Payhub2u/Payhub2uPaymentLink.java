@@ -82,6 +82,7 @@ public class Payhub2uPaymentLink extends SyncDispatcher {
             submitOrderResult.setSysTransactionId(systemTransactionId);
             submitOrderResult.setDescription("Payhub2u Payment [" + order.getTransactionId() + "]");
             submitOrderResult.setToken(accessKey);
+            submitOrderResult.setClientId(merchantId);
             orderCreated.setHash(hash);
             orderCreated.setHashDate(date);
         } catch (Exception ex) {
