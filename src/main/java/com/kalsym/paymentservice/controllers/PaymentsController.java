@@ -20,7 +20,6 @@ import com.kalsym.paymentservice.service.Response.StoreDetails;
 import com.kalsym.paymentservice.utils.DateTimeUtil;
 import com.kalsym.paymentservice.utils.LogUtil;
 import com.kalsym.paymentservice.utils.StringUtility;
-import jdk.internal.cmm.SystemResourcePressureImpl;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
