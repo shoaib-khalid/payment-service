@@ -414,6 +414,8 @@ public class PaymentsController {
         HttpResponse response = new HttpResponse(request.getRequestURI());
 
         String systemTransactionId = StringUtility.CreateRefID("CB");
+        LogUtil.info(systemTransactionId, location, "Request Callback Body ", payment.toString());
+
         String host = request.getRemoteHost();
         if (!payment.isPresent()) {
             response.setSuccessStatus(HttpStatus.NOT_FOUND);
