@@ -7,7 +7,7 @@
 ### Code Changes:
 
 1. Payhub2u bug fixed - authorization removed
-
+2. Callback Bug fixed
 ###############################################################################################
 
 # **Version v.2.3.1| 17-Oct-2022**

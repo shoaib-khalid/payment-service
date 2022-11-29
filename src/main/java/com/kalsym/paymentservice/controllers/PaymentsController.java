@@ -1,5 +1,6 @@
 package com.kalsym.paymentservice.controllers;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -19,6 +20,7 @@ import com.kalsym.paymentservice.service.Response.StoreDetails;
 import com.kalsym.paymentservice.utils.DateTimeUtil;
 import com.kalsym.paymentservice.utils.LogUtil;
 import com.kalsym.paymentservice.utils.StringUtility;
+import jdk.internal.cmm.SystemResourcePressureImpl;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -422,11 +424,11 @@ public class PaymentsController {
             LogUtil.info(systemTransactionId, location, "Callback Body Is Empty ", "");
             return ResponseEntity.status(response.getStatus()).body(response);
         }
-
-        PaymentOrder order = paymentOrdersRepository.findByClientTransactionId(payment.get().getTransactionId());
+        System.err.println("TRB" + payment.get().getTransactionId());
+        PaymentOrder order = paymentOrdersRepository.findBySystemTransactionId(payment.get().getTransactionId());
 
         if (order.getStatus().equals("PENDING")) {
-            if (payment.get().getStatus().equals("PAID")) {
+            if (payment.get().getStatus().equals("paid")) {
                 if (payment.get().getAmount().equals(order.getPaymentAmount())) {
                     if (order.getClientTransactionId().startsWith("G")) {
                         OrderConfirm res = paymentService.groupOrderUpdateStatus(order.getClientTransactionId(), "PAYMENT_CONFIRMED", "", payment.get().getStatus());
@@ -438,7 +440,7 @@ public class PaymentsController {
                     String paymentTransactionId = payment.get().getId();
                     String clientTransactionId = payment.get().getTransactionId();
                     String status = "PAID";
-                    PaymentOrder deliveryOrder = paymentOrdersRepository.findByClientTransactionIdAndStatus(payment.get().getTransactionId(), "PENDING");
+                    PaymentOrder deliveryOrder = paymentOrdersRepository.findBySystemTransactionIdAndStatus(payment.get().getTransactionId(), "PENDING");
                     if (deliveryOrder != null) {
                         clientTransactionId = deliveryOrder.getClientTransactionId();
                         LogUtil.info(systemTransactionId, location, "DeliveryOrder found. Update status and updated datetime", "");
@@ -466,7 +468,12 @@ public class PaymentsController {
                     response.setSuccessStatus(HttpStatus.OK);
                     return ResponseEntity.status(response.getStatus()).body(response);
                 }
-            } else {
+            }else if(payment.get().getStatus().equals("pending")) {
+                response.setSuccessStatus(HttpStatus.OK);
+                return ResponseEntity.status(response.getStatus()).body(response);
+            }
+
+            else {
                 if (order.getClientTransactionId().startsWith("G")) {
                     OrderConfirm res = paymentService.groupOrderUpdateStatus(order.getClientTransactionId(), "PAYMENT_FAILED", "", payment.get().getStatus());
                 } else {
@@ -474,27 +481,35 @@ public class PaymentsController {
                 }
             }
             response.setSuccessStatus(HttpStatus.OK);
-            return ResponseEntity.status(response.getStatus()).body(response);
         } else {
             response.setSuccessStatus(HttpStatus.OK);
             LogUtil.info(systemTransactionId, location, "Order Status is " + order.getStatus(), "");
 
-            return ResponseEntity.status(response.getStatus()).body(response);
         }
+        return ResponseEntity.status(response.getStatus()).body(response);
     }
 
     @Getter
     @Setter
     public static class CallbackResponse {
 
+        @JsonProperty("id")
         String id;
+        @JsonProperty("transactionId")
         String transactionId;
+        @JsonProperty("status")
         String status;
+        @JsonProperty("provider")
         String provider;
+        @JsonProperty("bank")
         String bank;
+        @JsonProperty("bankName")
         String bankName;
+        @JsonProperty("chargeAmount")
         Double chargeAmount;
+        @JsonProperty("totalAmount")
         Double totalAmount;
+        @JsonProperty("amount")
         Double amount;
 
         public String toString() {

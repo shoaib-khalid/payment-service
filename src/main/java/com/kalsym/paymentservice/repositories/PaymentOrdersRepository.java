@@ -19,5 +19,6 @@ public interface PaymentOrdersRepository extends JpaRepository<PaymentOrder, Str
     
     public PaymentOrder findBySystemTransactionId(String SystemTransactionId );
     public PaymentOrder findByClientTransactionIdAndStatus(String transactionId, String status );
+    public PaymentOrder findBySystemTransactionIdAndStatus(String transactionId, String status );
     public PaymentOrder findByClientTransactionId(String transactionId);
 }
