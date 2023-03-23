@@ -1,5 +1,15 @@
 ###############################################################################################
 
+# **Version v.2.3.3| 23-March-2023**
+
+###############################################################################################
+
+### Code Changes:
+
+1. Payhub2u bug fixed - Change Request API( to request stp from backend provide the payment url to fe)
+
+###############################################################################################
+
 # **Version v.2.3.2| 29-Nov-2022**
 
 ###############################################################################################
@@ -8,7 +18,7 @@
 
 1. Payhub2u bug fixed - authorization removed
 2. Callback Bug fixed
-###############################################################################################
+   ###############################################################################################
 
 # **Version v.2.3.1| 17-Oct-2022**
 
@@ -20,7 +30,6 @@
 
 ALTER TABLE symplified.payment_sp ADD channel varchar(100) NOT NULL;
 
-
 ##############################################################################################
 
 # **Version v.2.3.0 | 02-Sept-2022**
@@ -28,8 +37,8 @@ ALTER TABLE symplified.payment_sp ADD channel varchar(100) NOT NULL;
 ###############################################################################################
 
 ### Code Changes:
-Query Pending Transaction
 
+Query Pending Transaction
 
 ##############################################################################################
 
@@ -38,8 +47,8 @@ Query Pending Transaction
 ###############################################################################################
 
 ### Code Changes:
-Update Order Status Bug Fixed - FAILED UPDATE STATUS API UPDATE
 
+Update Order Status Bug Fixed - FAILED UPDATE STATUS API UPDATE
 
 ##############################################################################################
 
@@ -48,8 +57,8 @@ Update Order Status Bug Fixed - FAILED UPDATE STATUS API UPDATE
 ###############################################################################################
 
 ### Code Changes:
-Update Order Status Bug Fixed
 
+Update Order Status Bug Fixed
 
 ##############################################################################################
 
@@ -58,6 +67,7 @@ Update Order Status Bug Fixed
 ###############################################################################################
 
 ### Code Changes:
+
 Bug fixed get token for the go pay fast
 
 ##############################################################################################
@@ -67,6 +77,7 @@ Bug fixed get token for the go pay fast
 ###############################################################################################
 
 ### Code Changes:
+
 Change Get Total Value
 
 ##############################################################################################
@@ -76,8 +87,8 @@ Change Get Total Value
 ###############################################################################################
 
 ### Code Changes:
-Bug Fixed For Callback Payment Service
 
+Bug Fixed For Callback Payment Service
 
 ##############################################################################################
 
@@ -86,8 +97,8 @@ Bug Fixed For Callback Payment Service
 ###############################################################################################
 
 ### Code Changes:
-Handle for group order make payment and callback
 
+Handle for group order make payment and callback
 
 ##############################################################################################
 
@@ -96,15 +107,15 @@ Handle for group order make payment and callback
 ###############################################################################################
 
 ### Code Changes:
+
 1. Production Bug Fixed
-Application Properties _dev Updates : goPayFastPaymentUrl =https://ipguat.apps.net.pk/Ecommerce/api/Transaction/PostTransaction
-                                      origin =dev-pk.symplified.ai
+   Application Properties _dev Updates :
+   goPayFastPaymentUrl =https://ipguat.apps.net.pk/Ecommerce/api/Transaction/PostTransaction
+   origin =dev-pk.symplified.ai
 
-2. Application Properties _Prod Updates : goPayFastPaymentUrl =https://ipg1.apps.net.pk/Ecommerce/api/Transaction/PostTransaction
-                                          origin =easydukan.co
-
-
-
+2. Application Properties _Prod Updates :
+   goPayFastPaymentUrl =https://ipg1.apps.net.pk/Ecommerce/api/Transaction/PostTransaction
+   origin =easydukan.co
 
 ##############################################################################################
 
@@ -113,8 +124,8 @@ Application Properties _dev Updates : goPayFastPaymentUrl =https://ipguat.apps.n
 ###############################################################################################
 
 ### Code Changes:
-1. Added New Endpoint for proxy setting
 
+1. Added New Endpoint for proxy setting
 
 ##############################################################################################
 
@@ -123,6 +134,7 @@ Application Properties _dev Updates : goPayFastPaymentUrl =https://ipguat.apps.n
 ###############################################################################################
 
 ### Code Changes:
+
 1. Redirect from backend
 
 ##############################################################################################
@@ -136,7 +148,6 @@ Application Properties _dev Updates : goPayFastPaymentUrl =https://ipguat.apps.n
 1. GO Pay Fast Added Validation
 
 Application properties :  paymentRedirectUrl =https://payment.dev-pk.symplified.ai/payment-redirect?
-
 
 ALTER TABLE symplified.payment_orders ADD hash varchar(500) NULL;
 ALTER TABLE symplified.payment_orders ADD hashDate varchar(100) NULL;
