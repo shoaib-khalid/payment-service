@@ -18,7 +18,7 @@ import org.hibernate.annotations.GenericGenerator;
  * @author Sarosh
  */
 @Entity
-@Table(name = "customers")
+@Table(name = "customer")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -27,44 +27,27 @@ public class Customer implements Serializable {
     
     @NotBlank(message = "name is required")
     private String name;
-    
-    @NotBlank(message = "city is required")
-    private String city;
 
     @NotBlank(message = "mobileNumber is required")
-    private String mobileNumber;
+    private String phoneNumber;
+    
 
-    @NotBlank(message = "address is required")
-    private String address;
-
-    @NotBlank(message = "zipcode is required")
-    private String zipcode;
+    @NotBlank(message = "email is required")
+    private String email;
 
     @Id
     @GeneratedValue(generator = "uuid2")
     @GenericGenerator(name = "uuid2", strategy = "org.hibernate.id.UUIDGenerator")
-    private String userId;
+    private String id;
 
     public void updateCustomer(Customer seller) {
         
         if (null != seller.getName()) {
             name = seller.getName();
         }
-        
-        if (null != seller.getCity()) {
-            city = seller.getCity();
-        }
 
-        if (null != seller.getMobileNumber()) {
-            mobileNumber = seller.getMobileNumber();
-        }
-
-        if (null != seller.getZipcode()) {
-            zipcode = seller.getZipcode();
-        }
-
-        if (null != seller.getUserId()) {
-            userId = seller.getUserId();
+        if (null != seller.getId()) {
+            id = seller.getId();
         }
 
     }
@@ -78,7 +61,7 @@ public class Customer implements Serializable {
             return false;
         }
         final Customer other = (Customer) obj;
-        if (!Objects.equals(this.userId, other.userId)) {
+        if (!Objects.equals(this.id, other.getId())) {
             return false;
         }
         return true;

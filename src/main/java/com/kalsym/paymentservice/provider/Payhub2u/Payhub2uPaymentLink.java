@@ -64,15 +64,10 @@ public class Payhub2uPaymentLink extends SyncDispatcher {
     @Override
     public ProcessResult process() {
         LogUtil.info(logprefix, location, "Process start", "");
+        MakePaymentResult submitOrderResult = new MakePaymentResult();
         ProcessResult response = new ProcessResult();
 
-        response.returnObject = extractResponseBody(this.generateLink_url);
-        LogUtil.info(logprefix, location, "Process finish", "");
-        return response;
-    }
 
-    private MakePaymentResult extractResponseBody(String paymentUrl) {
-        MakePaymentResult submitOrderResult = new MakePaymentResult();
         try {
             String date = new Date().toString();
             JSONObject jsonObject = new JSONObject();
@@ -86,6 +81,7 @@ public class Payhub2uPaymentLink extends SyncDispatcher {
             jsonObject.put("redirect_url", redirecturl + order.getTransactionId());
             jsonObject.put("callback_url", callback_url);
             jsonObject.put("callback_token", "756d6b90-7171-4be1-ad7b-13ae71b07253");
+            LogUtil.info(logprefix, location, "Request Body ", jsonObject.toString());
 
 
             HttpHeaders headers = new HttpHeaders();
@@ -93,14 +89,11 @@ public class Payhub2uPaymentLink extends SyncDispatcher {
             headers.add("Content-Type", "application/json");
             headers.add("Host", hosturl);
 
-
             headers.add("Access-Key", accessKey);
-
 
             HttpEntity<String> res = new HttpEntity<>(jsonObject.toString(), headers);
             String getPaymentLnk = generateLink_url;
 
-            HashMap httpHeader = new HashMap();
 
             try {
                 RestTemplate restTemplate = new RestTemplate();
@@ -112,15 +105,6 @@ public class Payhub2uPaymentLink extends SyncDispatcher {
                     LogUtil.info(logprefix, location, "Get Body: " + responses.getBody(), "");
 
                     JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
-//                    PaymentResponse paymentResponse = new PaymentResponse();
-//                    paymentResponse.setError(jsonResp.get("error").getAsBoolean());
-//                    paymentResponse.setMessage(jsonResp.get("message").getAsString());
-//                    paymentResponse.setUrl(jsonResp.get("url").getAsString());
-//                    String seconUrl = jsonResp.get("secondary_url").getAsString().replace("{amount}", getTransction.get().getTransactionAmount().toString());
-//                    paymentResponse.setSecondaryUrl(seconUrl);
-//
-//                    return paymentResponse;
-
 
                     PaymentOrder orderCreated = new PaymentOrder();
                     orderCreated.setCreatedDate(DateTimeUtil.currentTimestamp());
@@ -129,6 +113,8 @@ public class Payhub2uPaymentLink extends SyncDispatcher {
                     orderCreated.setCustomerName(order.getCustomerName());
                     orderCreated.setPhoneNo(order.getPhoneNo());
                     orderCreated.setCallbackUrl(callback_url);
+                    orderCreated.setHash("");
+                    orderCreated.setHashDate(date);
                     submitOrderResult.setOrderCreated(orderCreated);
                     submitOrderResult.setSuccess(true);
                     submitOrderResult.setProviderId(this.providerId);
@@ -138,8 +124,6 @@ public class Payhub2uPaymentLink extends SyncDispatcher {
                     submitOrderResult.setDescription("Payhub2u Payment [" + order.getTransactionId() + "]");
                     submitOrderResult.setToken("");
                     submitOrderResult.setClientId(merchantId);
-                    orderCreated.setHash("");
-                    orderCreated.setHashDate(date);
 
 
                 } else {
@@ -152,46 +136,15 @@ public class Payhub2uPaymentLink extends SyncDispatcher {
             }
 
 
-//            String req = merchantId + order.getTransactionId() + order.getPaymentAmount() + date;
-//            String hash = hash(req, generateLinkKalsymKey);
-//
-//
-//            PaymentOrder orderCreated = new PaymentOrder();
-//            orderCreated.setCreatedDate(DateTimeUtil.currentTimestamp());
-//            orderCreated.setEmail(order.getEmail());
-//            orderCreated.setCustomerId(order.getCustomerId());
-//            orderCreated.setCustomerName(order.getCustomerName());
-//            orderCreated.setPhoneNo(order.getPhoneNo());
-//            orderCreated.setCallbackUrl(callback_url);
-//            submitOrderResult.setOrderCreated(orderCreated);
-//            submitOrderResult.setSuccess(true);
-//            submitOrderResult.setProviderId(this.providerId);
-//            submitOrderResult.setPaymentLink(paymentUrl);
-//            submitOrderResult.setHash(hash);
-//            submitOrderResult.setSysTransactionId(systemTransactionId);
-//            submitOrderResult.setDescription("Payhub2u Payment [" + order.getTransactionId() + "]");
-//            submitOrderResult.setToken(accessKey);
-//            submitOrderResult.setClientId(merchantId);
-//            orderCreated.setHash(hash);
-//            orderCreated.setHashDate(date);
-        } catch (Exception ex) {
-            LogUtil.error(logprefix, location, "Error extracting result", "", ex);
-        }
-        return submitOrderResult;
-    }
-
-
-    public String hash(String req, String key) {
-        byte[] hmacSha256 = null;
-        try {
-            Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secret_key = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-            sha256_HMAC.init(secret_key);
-            hmacSha256 = sha256_HMAC.doFinal(req.getBytes(StandardCharsets.UTF_8));
-
+            response.resultCode = 0;
+            response.returnObject = submitOrderResult;
+            LogUtil.info(logprefix, location, "Process finish", "");
+            return response;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to calculate hmac-sha256", e);
+            LogUtil.info(logprefix, location, "Request failed", "");
+            response.resultCode = -1;
+            return response;
         }
-        return Hex.encodeHexString(hmacSha256);
     }
+
 }

@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.kalsym.paymentservice.models.HttpResponse;
+import com.kalsym.paymentservice.models.daos.Customer;
 import com.kalsym.paymentservice.models.daos.PaymentOrder;
 import com.kalsym.paymentservice.models.daos.PaymentRequest;
 import com.kalsym.paymentservice.models.daos.Provider;
@@ -61,6 +62,9 @@ public class PaymentsController {
     @Autowired
     OrderPaymentService paymentService;
 
+    @Autowired
+    CustomersRepository customersRepository;
+
 
     @Value("${paymentRedirectUrl}")
     String paymentRedirectUrl;
@@ -76,6 +80,8 @@ public class PaymentsController {
         String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
         HttpResponse response = new HttpResponse(request.getRequestURI());
+
+        Customer customer = customersRepository.getOne(paymentRequest.getCustomerId());
 
         LogUtil.info(logprefix, location, "", "");
         paymentRequest.setPaymentAmount(null);
@@ -102,6 +108,9 @@ public class PaymentsController {
 
 
         }
+
+        paymentRequest.setEmail(customer.getEmail());
+        paymentRequest.setPhoneNo(customer.getPhoneNumber());
 
         Optional<Provider> provider = providerRepository.findByRegionCountryIdAndChannel(paymentRequest.getRegionCountryId(), paymentRequest.getChannel());
 
@@ -467,12 +476,10 @@ public class PaymentsController {
                     response.setSuccessStatus(HttpStatus.OK);
                     return ResponseEntity.status(response.getStatus()).body(response);
                 }
-            }else if(payment.get().getStatus().equals("pending")) {
+            } else if (payment.get().getStatus().equals("pending")) {
                 response.setSuccessStatus(HttpStatus.OK);
                 return ResponseEntity.status(response.getStatus()).body(response);
-            }
-
-            else {
+            } else {
                 if (order.getClientTransactionId().startsWith("G")) {
                     OrderConfirm res = paymentService.groupOrderUpdateStatus(order.getClientTransactionId(), "PAYMENT_FAILED", "", payment.get().getStatus());
                 } else {
