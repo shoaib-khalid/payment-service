@@ -1,6 +1,6 @@
 package com.kalsym.paymentservice.provider.EasyPaisa;
 
-import com.kalsym.paymentservice.models.daos.PaymentRequest;
+import com.kalsym.paymentservice.models.dto.PaymentRequest;
 import com.kalsym.paymentservice.provider.SyncDispatcher;
 import com.kalsym.paymentservice.utils.LogUtil;
 

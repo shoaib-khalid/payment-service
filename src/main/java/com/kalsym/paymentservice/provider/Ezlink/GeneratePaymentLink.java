@@ -4,7 +4,7 @@
  */
 package com.kalsym.paymentservice.provider.Ezlink;
 
-import com.kalsym.paymentservice.models.daos.PaymentRequest;
+import com.kalsym.paymentservice.models.dto.PaymentRequest;
 import com.kalsym.paymentservice.models.daos.PaymentOrder;
 import com.kalsym.paymentservice.provider.SyncDispatcher;
 import com.kalsym.paymentservice.provider.ProcessResult;
@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonArray;
 import com.google.gson.Gson;
 
 public class GeneratePaymentLink extends SyncDispatcher {

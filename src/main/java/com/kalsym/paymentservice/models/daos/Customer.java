@@ -30,7 +30,7 @@ public class Customer implements Serializable {
 
     @NotBlank(message = "mobileNumber is required")
     private String phoneNumber;
-    
+
 
     @NotBlank(message = "email is required")
     private String email;

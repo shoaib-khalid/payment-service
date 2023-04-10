@@ -3,13 +3,12 @@ package com.kalsym.paymentservice.provider.Payhub2u;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.kalsym.paymentservice.models.daos.PaymentOrder;
-import com.kalsym.paymentservice.models.daos.PaymentRequest;
+import com.kalsym.paymentservice.models.dto.PaymentRequest;
 import com.kalsym.paymentservice.provider.MakePaymentResult;
 import com.kalsym.paymentservice.provider.ProcessResult;
 import com.kalsym.paymentservice.provider.SyncDispatcher;
 import com.kalsym.paymentservice.utils.DateTimeUtil;
 import com.kalsym.paymentservice.utils.LogUtil;
-import org.apache.commons.codec.binary.Hex;
 import org.json.JSONObject;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -17,12 +16,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 
 public class Payhub2uPaymentLink extends SyncDispatcher {

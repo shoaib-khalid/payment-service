@@ -12,6 +12,8 @@ import javax.persistence.EmbeddedId;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+
+import com.kalsym.paymentservice.models.dto.ProviderConfigurationId;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -29,7 +31,8 @@ import org.hibernate.annotations.FetchMode;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ProviderConfiguration implements Serializable {
-    @EmbeddedId ProviderConfigurationId id;
+    @EmbeddedId
+    ProviderConfigurationId id;
     String configValue;
     
     @ManyToOne(fetch = FetchType.LAZY)

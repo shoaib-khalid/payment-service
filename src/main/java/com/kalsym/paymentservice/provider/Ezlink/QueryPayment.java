@@ -4,7 +4,6 @@
  */
 package com.kalsym.paymentservice.provider.Ezlink;
 
-import com.kalsym.paymentservice.models.daos.PaymentRequest;
 import com.kalsym.paymentservice.models.daos.PaymentOrder;
 import com.kalsym.paymentservice.provider.SyncDispatcher;
 import com.kalsym.paymentservice.provider.ProcessResult;

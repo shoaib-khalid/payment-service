@@ -1,7 +1,7 @@
 package com.kalsym.paymentservice.provider.SenangPay;
 
 import com.kalsym.paymentservice.models.daos.PaymentOrder;
-import com.kalsym.paymentservice.models.daos.PaymentRequest;
+import com.kalsym.paymentservice.models.dto.PaymentRequest;
 import com.kalsym.paymentservice.provider.MakePaymentResult;
 import com.kalsym.paymentservice.provider.ProcessResult;
 import com.kalsym.paymentservice.provider.SyncDispatcher;

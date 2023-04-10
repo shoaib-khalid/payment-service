@@ -7,7 +7,7 @@ import com.google.gson.JsonObject;
 import com.kalsym.paymentservice.models.HttpResponse;
 import com.kalsym.paymentservice.models.daos.Customer;
 import com.kalsym.paymentservice.models.daos.PaymentOrder;
-import com.kalsym.paymentservice.models.daos.PaymentRequest;
+import com.kalsym.paymentservice.models.dto.PaymentRequest;
 import com.kalsym.paymentservice.models.daos.Provider;
 import com.kalsym.paymentservice.provider.MakePaymentResult;
 import com.kalsym.paymentservice.provider.ProcessResult;
@@ -26,16 +26,23 @@ import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.client.RestTemplate;
 
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import java.math.BigInteger;
 import java.net.URI;
-import java.security.MessageDigest;
 import java.util.*;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+
 
 /**
  * @author Sarosh
@@ -103,6 +110,7 @@ public class PaymentsController {
             StoreDetails storeDetails = paymentService.getStore(res.getStoreId());
 
             paymentRequest.setRegionCountryId(storeDetails.getRegionCountryId());
+            paymentRequest.setStoreVerticalCode(storeDetails.getVerticalCode());
             paymentRequest.setPaymentAmount(res.getOrderGroupDetails().getTotal());
             LogUtil.info(systemTransactionId, location, "Payment Amount  ", paymentRequest.getPaymentAmount().toString());
 
@@ -155,6 +163,7 @@ public class PaymentsController {
     }
 
     //TODO : Proper way callback in testing
+    //FIXME: Check Where This API Using
     @GetMapping(path = {"/payment-redirect"}, name = "payments-sp-callback")
     public ResponseEntity<HttpResponse> call(HttpServletRequest request, @RequestParam(name = "name", required = false, defaultValue = "") String name, @RequestParam(name = "email", required = false, defaultValue = "") String email, @RequestParam(name = "phone", required = false, defaultValue = "") String phone, @RequestParam(name = "transaction_amount", required = false, defaultValue = "") String transaction_amount, @RequestParam(name = "status_id", required = false, defaultValue = "") int status_id, @RequestParam(name = "order_id", required = false, defaultValue = "") String order_id, @RequestParam(name = "transaction_id", required = false, defaultValue = "") String transaction_id, @RequestParam(name = "hash", required = false, defaultValue = "") String hash, @RequestParam(name = "basket_id", required = false, defaultValue = "") String basket_id, @RequestParam(name = "Rdv_Message_Key", required = false, defaultValue = "") String Rdv_Message_Key, @RequestParam(name = "PaymentType", required = false, defaultValue = "") String PaymentType, @RequestParam(name = "PaymentName", required = false, defaultValue = "") String PaymentName, @RequestParam(name = "validation_hash", defaultValue = "") String validation_hash, @RequestParam(name = "err_code", required = false) String err_code, @RequestParam(name = "order_date", required = false, defaultValue = "") String order_date, @RequestParam(name = "payment_channel", required = false, defaultValue = "") String payment_channel, @RequestParam(name = "err_msg", required = false, defaultValue = "") String err_msg, @RequestParam(name = "msg", required = false, defaultValue = "") String msg) {
 
@@ -200,10 +209,6 @@ public class PaymentsController {
             requestBody.addProperty("err_code", err_code);
             requestBody.addProperty("order_date", order_date);
         }
-
-//        LogUtil.info(logprefix, location, "IP:" + IP, order.getClientTransactionId());
-//        LogUtil.info(logprefix, location, "IP:" + IP, order.getClientTransactionId());
-//        LogUtil.info(logprefix, location, "IP:" + IP, providerIpRepository.toString());
         ProcessRequest process = new ProcessRequest(systemTransactionId, requestBody, providerRatePlanRepository, providerConfigurationRepository, providerRepository);
         ProcessResult processResult = process.ProcessCallback(IP, providerIpRepository, order.getSpId());
         LogUtil.info(systemTransactionId, location, "ProcessRequest finish. resultCode:" + processResult.resultCode, "");
@@ -305,6 +310,47 @@ public class PaymentsController {
         }
     }
 
+    @GetMapping(path = {"/queryOrderStatus/{orderId}"}, name = "payments-sp-query-status")
+    public ResponseEntity<HttpResponse> queryOrderStatus(@PathVariable("orderId") String orderId) {
+//        String logprefix = request.getRequestURI() + " ";
+        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
+        HttpResponse response = new HttpResponse();
+
+        String systemTransactionId = StringUtility.CreateRefID("CB");
+//        String IP = request.getRemoteAddr();
+        PaymentOrder order = paymentOrdersRepository.findByClientTransactionId(orderId);
+
+        if (!order.getStatus().equals("PAID")) {
+
+            ProcessRequest process = new ProcessRequest(systemTransactionId, order, providerRatePlanRepository, providerConfigurationRepository, providerRepository);
+            ProcessResult processResult = process.QueryPaymentStatus();
+
+            QueryPaymentResult res = (QueryPaymentResult) processResult.returnObject;
+
+            order.setPaymentChannel(res.orderFound.getPaymentChannel());
+            order.setStatus(res.orderFound.getStatus());
+            order.setSpOrderId(res.orderFound.getSpOrderId());
+            paymentOrdersRepository.save(order);
+            LogUtil.info(systemTransactionId, location, "ProcessRequest finish. resultCode:" + processResult.resultCode, "");
+            response.setSuccessStatus(HttpStatus.OK);
+            if (order.getStatus().equals("PAID")) {
+                if (orderId.startsWith("G")) {
+                    OrderConfirm updateOrderPaymentStatus = paymentService.groupOrderUpdateStatus(orderId, "PAYMENT_CONFIRMED", "", order.getStatusDescription());
+                } else {
+                    OrderConfirm updateOrderPaymentStatus = paymentService.updateStatus(orderId, "PAYMENT_CONFIRMED", "", order.getStatusDescription());
+                }
+            }
+            return ResponseEntity.status(response.getStatus()).body(response);
+        } else {
+            response.setSuccessStatus(HttpStatus.OK);
+            LogUtil.info(systemTransactionId, location, "Order Status is " + order.getStatus(), "");
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+
+    }
+
+    //CALLBACK HANDLING
+    //SENANGPAY CALLBACK
     @PostMapping(path = {"/callback"}, name = "payments-sp-callback")
     public String spCallback(HttpServletRequest request, @RequestParam(required = false, defaultValue = "") String name, @RequestParam(required = false, defaultValue = "") String email, @RequestParam(required = false, defaultValue = "") String phone,
 
@@ -375,47 +421,6 @@ public class PaymentsController {
         }
 
     }
-
-
-    @GetMapping(path = {"/queryOrderStatus/{orderId}"}, name = "payments-sp-query-status")
-    public ResponseEntity<HttpResponse> queryOrderStatus(@PathVariable("orderId") String orderId) {
-//        String logprefix = request.getRequestURI() + " ";
-        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
-        HttpResponse response = new HttpResponse();
-
-        String systemTransactionId = StringUtility.CreateRefID("CB");
-//        String IP = request.getRemoteAddr();
-        PaymentOrder order = paymentOrdersRepository.findByClientTransactionId(orderId);
-
-        if (!order.getStatus().equals("PAID")) {
-
-            ProcessRequest process = new ProcessRequest(systemTransactionId, order, providerRatePlanRepository, providerConfigurationRepository, providerRepository);
-            ProcessResult processResult = process.QueryPaymentStatus();
-
-            QueryPaymentResult res = (QueryPaymentResult) processResult.returnObject;
-
-            order.setPaymentChannel(res.orderFound.getPaymentChannel());
-            order.setStatus(res.orderFound.getStatus());
-            order.setSpOrderId(res.orderFound.getSpOrderId());
-            paymentOrdersRepository.save(order);
-            LogUtil.info(systemTransactionId, location, "ProcessRequest finish. resultCode:" + processResult.resultCode, "");
-            response.setSuccessStatus(HttpStatus.OK);
-            if (order.getStatus().equals("PAID")) {
-                if (orderId.startsWith("G")) {
-                    OrderConfirm updateOrderPaymentStatus = paymentService.groupOrderUpdateStatus(orderId, "PAYMENT_CONFIRMED", "", order.getStatusDescription());
-                } else {
-                    OrderConfirm updateOrderPaymentStatus = paymentService.updateStatus(orderId, "PAYMENT_CONFIRMED", "", order.getStatusDescription());
-                }
-            }
-            return ResponseEntity.status(response.getStatus()).body(response);
-        } else {
-            response.setSuccessStatus(HttpStatus.OK);
-            LogUtil.info(systemTransactionId, location, "Order Status is " + order.getStatus(), "");
-            return ResponseEntity.status(response.getStatus()).body(response);
-        }
-
-    }
-
 
     @PostMapping(path = {"/payhub2u/callback"}, name = "payments-sp-callback")
     public ResponseEntity<HttpResponse> payhub2uCallback(HttpServletRequest request, @RequestBody Optional<CallbackResponse> payment) {
@@ -494,6 +499,228 @@ public class PaymentsController {
         }
         return ResponseEntity.status(response.getStatus()).body(response);
     }
+
+    //BetterPay
+    //Callback
+    @PostMapping(path = {"/request/callback"}, name = "payment-request-callback")
+    public ResponseEntity<HttpResponse> paymentRequestCallback(HttpServletRequest request, @RequestBody Object requestBody) {
+        String logprefix = request.getRequestURI() + " ";
+        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
+        HttpResponse response = new HttpResponse(request.getRequestURI());
+
+        String systemTransactionId = StringUtility.CreateRefID("CB");
+        LogUtil.info(systemTransactionId, location, "Request Callback Body ", requestBody.toString());
+
+        String IP = request.getRemoteAddr();
+        LogUtil.info(logprefix, location, "Get Provider List  : ", IP);
+
+        JsonObject callbackResponse = new Gson().fromJson(requestBody.toString(), JsonObject.class);
+
+        try {
+            String paymentReferenceId = callbackResponse.get("invoice_no").getAsString();
+            String txnStatus = callbackResponse.get("txn_status").getAsString();
+            Double txnAmount = Double.parseDouble(callbackResponse.get("txn_amount").getAsString());
+
+            PaymentOrder order = paymentOrdersRepository.findBySystemTransactionId(paymentReferenceId);
+
+            if (order.getStatus().equals("PENDING")) {
+                if (txnStatus.equals("00")) {
+                    if (txnAmount.equals(order.getPaymentAmount())) {
+                        if (order.getClientTransactionId().startsWith("G")) {
+                            OrderConfirm res = paymentService.groupOrderUpdateStatus(order.getClientTransactionId(), "PAYMENT_CONFIRMED", "", callbackResponse.get("msg").getAsString());
+                        } else {
+                            OrderConfirm res = paymentService.updateStatus(order.getClientTransactionId(), "PAYMENT_CONFIRMED", "", callbackResponse.get("msg").getAsString());
+                        }
+                        String spErrorCode = txnStatus;
+                        String statusDescription = callbackResponse.get("msg").getAsString();
+                        String paymentTransactionId = callbackResponse.get("fpx_fpxTxnId").getAsString();
+                        String clientTransactionId;
+                        String status = "PAID";
+                        PaymentOrder deliveryOrder = paymentOrdersRepository.findBySystemTransactionIdAndStatus(paymentReferenceId, "PENDING");
+                        if (deliveryOrder != null) {
+                            clientTransactionId = deliveryOrder.getClientTransactionId();
+                            LogUtil.info(systemTransactionId, location, "DeliveryOrder found. Update status and updated datetime", "");
+                            deliveryOrder.setStatus(status);
+                            deliveryOrder.setPaymentChannel(callbackResponse.get("pay_method").getAsString());
+                            deliveryOrder.setUpdatedDate(DateTimeUtil.currentTimestamp());
+                            deliveryOrder.setSpErrorCode(spErrorCode);
+                            deliveryOrder.setSpOrderId(paymentTransactionId);
+                            deliveryOrder.setStatusDescription(statusDescription);
+                            paymentOrdersRepository.save(deliveryOrder);
+                        } else {
+                            LogUtil.info(systemTransactionId, location, "DeliveryOrder not found for paymentTransactionId:" + paymentTransactionId, "");
+                        }
+                        response.setSuccessStatus(HttpStatus.OK);
+//                response.setData(processResult.returnObject);
+                        LogUtil.info(systemTransactionId, location, "Response with " + HttpStatus.OK, "");
+                        response.setSuccessStatus(HttpStatus.OK);
+                        return ResponseEntity.status(response.getStatus()).body(response);
+                    } else {
+                        if (order.getClientTransactionId().startsWith("G")) {
+                            OrderConfirm res = paymentService.groupOrderUpdateStatus(order.getClientTransactionId(), "PAYMENT_FAILED", "", "Transaction Amount Does Not Match");
+                        } else {
+                            OrderConfirm res = paymentService.updateStatus(order.getClientTransactionId(), "PAYMENT_FAILED", "", "Transaction Amount Does Not Match");
+                        }
+                        response.setSuccessStatus(HttpStatus.OK);
+                        return ResponseEntity.status(response.getStatus()).body(response);
+                    }
+                } else if (txnStatus.equals("09") || txnStatus.equals("97")) {
+                    response.setSuccessStatus(HttpStatus.OK);
+                    return ResponseEntity.status(response.getStatus()).body(response);
+                } else {
+                    if (order.getClientTransactionId().startsWith("G")) {
+                        OrderConfirm res = paymentService.groupOrderUpdateStatus(order.getClientTransactionId(), "PAYMENT_FAILED", "", callbackResponse.get("msg").getAsString());
+                    } else {
+                        OrderConfirm res = paymentService.updateStatus(order.getClientTransactionId(), "PAYMENT_FAILED", "", callbackResponse.get("msg").getAsString());
+                    }
+                }
+                response.setSuccessStatus(HttpStatus.OK);
+            } else {
+                response.setSuccessStatus(HttpStatus.OK);
+                LogUtil.info(systemTransactionId, location, "Order Status is " + order.getStatus(), "");
+
+            }
+        } catch (Exception ex) {
+            response.setSuccessStatus(HttpStatus.OK);
+            LogUtil.info(systemTransactionId, location, "Exception ", ex.getMessage());
+        }
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+
+
+    @PostMapping(path = {"/payment-request"}, name = "payments-make-payment")
+    public ResponseEntity<HttpResponse> betterPaymentReqeust(HttpServletRequest request, @Valid @RequestBody BetterPayRequest betterPayRequest) {
+        String logprefix = request.getRequestURI() + " ";
+        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
+        HttpResponse response = new HttpResponse(request.getRequestURI());
+
+        Customer customer = customersRepository.getOne(betterPayRequest.getCustomerId());
+        PaymentOrder order = paymentOrdersRepository.findBySystemTransactionId(betterPayRequest.getTransactionId());
+
+
+        //generate transaction id
+
+        if (order.getClientTransactionId().startsWith("G")) {
+            OrderGroup res = paymentService.getGroupOrder(order.getClientTransactionId());
+            betterPayRequest.setOrderTotalAmount(res.getTotal());
+
+        } else {
+            OrderConfirm res = paymentService.getOrderById(order.getClientTransactionId());
+            LogUtil.info(order.getSystemTransactionId(), location, "Order Service Return :   ", res.toString());
+            StoreDetails storeDetails = paymentService.getStore(res.getStoreId());
+            LogUtil.info(order.getSystemTransactionId(), location, "Payment Amount  ", res.getTotal().toString());
+        }
+
+
+        String token = "";//https://apipxyuat.apps.net.pk:8443/api/token
+        String requestUrl = "https://www.demo.betterpay.me/merchant/api/v2/lite/direct/receiver";
+        String callBackUrlBe = "https://api.symplified.it/payment-service/v1/payments/callback";
+        String callBackUrlFeSuccess = "https://payment.dev-my.symplified.ai/thankyou/SUCCESS/ONLINEPAYMENT/Payment_was_successful/DELIVERIN";
+        String callBackUrlFeFail = "https://payment.dev-my.symplified.ai/thankyou/SUCCESS/ONLINEPAYMENT/Payment_was_successful/DELIVERIN";
+        String currency = "MYR";
+        String merchantId = "10363";
+        String desc = "TESTING";
+        String bankCode = "CREDIT";
+        String respondCode = "1";
+        String skipReceipt = "0";
+
+        RestTemplate restTemplate = new RestTemplate();
+
+        JsonObject object = new JsonObject();
+        object.addProperty("merchant_id", merchantId);
+        object.addProperty("invoice", order.getSystemTransactionId());
+        object.addProperty("amount", betterPayRequest.getOrderTotalAmount().toString());
+        object.addProperty("payment_desc", desc); // will change
+        object.addProperty("currency", currency);
+        object.addProperty("buyer_name", customer.getName());
+        object.addProperty("buyer_email", customer.getEmail());
+        object.addProperty("phone", customer.getPhoneNumber());
+        object.addProperty("callback_url_be", callBackUrlBe);
+        object.addProperty("callback_url_fe_succ", callBackUrlFeSuccess);
+        object.addProperty("callback_url_fe_fail", callBackUrlFeFail);
+        object.addProperty("bank_code", bankCode);
+        object.addProperty("respond", respondCode);
+        object.addProperty("skip_receipt", skipReceipt);
+        object.addProperty("card_number", betterPayRequest.getCreditCardNo());
+        object.addProperty("card_year", betterPayRequest.getCardYear());
+        object.addProperty("card_month", betterPayRequest.getCardMonth());
+        object.addProperty("card_cvv", betterPayRequest.getCardCCV());
+
+        String hmacHex = "";
+        String message = betterPayRequest.getOrderTotalAmount() + bankCode + customer.getEmail() + customer.getName() + callBackUrlBe
+                + callBackUrlFeFail + callBackUrlFeSuccess + betterPayRequest.getCardCCV() + betterPayRequest.getCardMonth()
+                + betterPayRequest.getCreditCardNo() + betterPayRequest.getCardYear() + currency + order.getSystemTransactionId() + merchantId
+                + desc + customer.getPhoneNumber() + respondCode + skipReceipt;
+        System.err.println(message);
+
+        String secret = "XPePraM9Lsgz";
+        try {
+            Mac hmacSha256 = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getBytes(), "HmacSHA256");
+            hmacSha256.init(secretKeySpec);
+
+            byte[] hmacBytes = hmacSha256.doFinal(message.getBytes());
+
+            // Convert the byte array to a hexadecimal string representation
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hmacBytes) {
+                sb.append(String.format("%02x", b));
+            }
+            hmacHex = sb.toString();
+
+
+            System.out.println("HMAC-SHA256: " + hmacHex);
+        } catch (Exception e) {
+            LogUtil.info(order.getSystemTransactionId(), location, "Better Pay HMAC Exception  ", e.getMessage());
+
+        }
+        object.addProperty("hash", hmacHex);
+        System.err.println(object.toString());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Content-Type", "application/json");
+        HttpEntity<String> data = new HttpEntity<>(object.toString(), headers);
+        System.err.println("url for orderDetails" + requestUrl);
+        try {
+            ResponseEntity<String> responses = restTemplate.exchange(requestUrl, HttpMethod.POST, data, String.class);
+
+            int statusCode = responses.getStatusCode().value();
+            LogUtil.info(logprefix, location, "Responses", responses.getBody());
+            if (statusCode == 200) {
+                LogUtil.info(logprefix, location, "Get Token: " + responses.getBody(), "");
+
+                JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
+                token = jsonResp.get("ACCESS_TOKEN").getAsString();
+
+            } else {
+                LogUtil.info(logprefix, location, "Request failed", responses.getBody());
+                token = "";
+            }
+        } catch (Exception exception) {
+            LogUtil.info(logprefix, location, "Exception : ", exception.getMessage());
+            token = "";
+
+        }
+
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+
+    }
+
+    @Getter
+    @Setter
+    public static class BetterPayRequest {
+
+        private String customerId;
+        private String creditCardNo;
+        private String cardYear;
+        private String cardMonth;
+        private String cardCCV;
+        private String paymentType;
+        private String transactionId;
+        private Double orderTotalAmount;
+
+    }
+
 
     @Getter
     @Setter

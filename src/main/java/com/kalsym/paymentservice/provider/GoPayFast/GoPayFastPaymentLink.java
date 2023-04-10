@@ -3,7 +3,7 @@ package com.kalsym.paymentservice.provider.GoPayFast;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.kalsym.paymentservice.models.daos.PaymentOrder;
-import com.kalsym.paymentservice.models.daos.PaymentRequest;
+import com.kalsym.paymentservice.models.dto.PaymentRequest;
 import com.kalsym.paymentservice.provider.MakePaymentResult;
 import com.kalsym.paymentservice.provider.ProcessResult;
 import com.kalsym.paymentservice.provider.SyncDispatcher;

@@ -5,6 +5,7 @@
 package com.kalsym.paymentservice.controllers;
 
 import com.kalsym.paymentservice.models.daos.*;
+import com.kalsym.paymentservice.models.dto.PaymentRequest;
 import com.kalsym.paymentservice.provider.*;
 import com.kalsym.paymentservice.repositories.ProviderConfigurationRepository;
 import com.kalsym.paymentservice.repositories.ProviderIpRepository;

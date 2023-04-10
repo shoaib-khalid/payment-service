@@ -4,7 +4,7 @@
  */
 package com.kalsym.paymentservice.provider;
 
-import com.kalsym.paymentservice.models.daos.PaymentRequest;
+import com.kalsym.paymentservice.models.dto.PaymentRequest;
 import com.kalsym.paymentservice.models.daos.Provider;
 import com.kalsym.paymentservice.utils.LogUtil;
 import com.kalsym.paymentservice.controllers.ProcessRequest;

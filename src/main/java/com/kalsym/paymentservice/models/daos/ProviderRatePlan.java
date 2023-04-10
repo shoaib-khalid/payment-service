@@ -12,6 +12,8 @@ import javax.persistence.EmbeddedId;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+
+import com.kalsym.paymentservice.models.dto.ProviderRatePlanId;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -29,7 +31,8 @@ import org.hibernate.annotations.FetchMode;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ProviderRatePlan implements Serializable {
-    @EmbeddedId ProviderRatePlanId id;
+    @EmbeddedId
+    ProviderRatePlanId id;
     String marginType;
     Double margin;
     

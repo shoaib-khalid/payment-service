@@ -2,7 +2,7 @@
  * Here comes the text of your license
  * Each line should be prefixed with  * 
  */
-package com.kalsym.paymentservice.models.daos;
+package com.kalsym.paymentservice.models.dto;
 
 import lombok.Getter;
 import lombok.Setter;

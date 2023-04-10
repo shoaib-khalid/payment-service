@@ -2,7 +2,7 @@
  * Here comes the text of your license
  * Each line should be prefixed with  * 
  */
-package com.kalsym.paymentservice.models.daos;
+package com.kalsym.paymentservice.models.dto;
 
 import java.io.Serializable;
 import javax.persistence.Embeddable;
@@ -16,7 +16,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Embeddable
-public class ProviderRatePlanId implements Serializable {
+public class ProviderConfigurationId implements Serializable {
     Integer spId;
-    String productCode;
+    String configField;
 }
