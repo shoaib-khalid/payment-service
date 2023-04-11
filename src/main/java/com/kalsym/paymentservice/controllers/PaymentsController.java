@@ -5,10 +5,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.kalsym.paymentservice.models.HttpResponse;
-import com.kalsym.paymentservice.models.daos.Customer;
-import com.kalsym.paymentservice.models.daos.PaymentOrder;
+import com.kalsym.paymentservice.models.daos.*;
 import com.kalsym.paymentservice.models.dto.PaymentRequest;
-import com.kalsym.paymentservice.models.daos.Provider;
 import com.kalsym.paymentservice.provider.MakePaymentResult;
 import com.kalsym.paymentservice.provider.ProcessResult;
 import com.kalsym.paymentservice.provider.QueryPaymentResult;
@@ -26,22 +24,19 @@ import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.client.RestTemplate;
-
-
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
-import java.net.URI;
-import java.util.*;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
+import java.net.URI;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Optional;
+import java.util.TimeZone;
 
 
 /**
@@ -81,6 +76,13 @@ public class PaymentsController {
 
     @Value("${origin}")
     String origin;
+
+    @Autowired
+    StoreRepository storeRepository;
+
+
+    @Autowired
+    OrderRepository orderRepository;
 
     @PostMapping(path = {"/makePayment"}, name = "payments-make-payment")
     public ResponseEntity<HttpResponse> makePayment(HttpServletRequest request, @Valid @RequestBody PaymentRequest paymentRequest) {
@@ -703,8 +705,54 @@ public class PaymentsController {
 
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @GetMapping(path = {"/getPaymentDetails/{invoiceId}"}, name = "payments-get-details")
+    public ResponseEntity<HttpResponse> betterPaymentReqeust(HttpServletRequest request, @PathVariable(name = "invoiceId") String invoiceId) throws ParseException {
+        String logprefix = request.getRequestURI() + " ";
+        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
+        HttpResponse response = new HttpResponse(request.getRequestURI());
+        PaymentDetails paymentDetails = new PaymentDetails();
+
+        PaymentOrder order = paymentOrdersRepository.findBySystemTransactionId(invoiceId);
+
+        Date current = new Date();
+
+        // Parse the string date into a Date object
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        Date date = dateFormat.parse(order.getCreatedDate());
+
+        // Find the difference between the current date and the string date in minutes
+        long diff = (current.getTime() - date.getTime()) / (1000 * 60);
+        Order storeOrder = orderRepository.getOne(order.getClientTransactionId());
+
+        if (Math.abs(diff) < 3) {
+            // The difference is less than 5 minutes
+            System.out.println("The difference is less than 5 minutes.");
+            paymentDetails.setStoreName(storeOrder.getStore().getName());
+            paymentDetails.setStatus("ACTIVE");
+            paymentDetails.setOrderTotalAmount(order.getPaymentAmount());
+            paymentDetails.setCustomerId(order.getCustomerId());
+            paymentDetails.setInvoiceId(order.getSystemTransactionId());
+            response.setData(paymentDetails);
+            response.setSuccessStatus(HttpStatus.OK);
+
+        } else {
+            paymentDetails.setStoreName(storeOrder.getStore().getName());
+            paymentDetails.setStatus("EXPIRED");
+            paymentDetails.setCustomerId(order.getCustomerId());
+            paymentDetails.setInvoiceId(order.getSystemTransactionId());
+            // The difference is 5 minutes or more
+            System.out.println("The difference is 5 minutes or more.");
+
+            response.setData(paymentDetails);
+            response.setSuccessStatus(HttpStatus.FORBIDDEN);
+        }
+        return ResponseEntity.status(response.getStatus()).body(response);
 
     }
+
 
     @Getter
     @Setter
@@ -717,6 +765,18 @@ public class PaymentsController {
         private String cardCCV;
         private String paymentType;
         private String transactionId;
+        private Double orderTotalAmount;
+
+    }
+
+    @Getter
+    @Setter
+    public static class PaymentDetails {
+
+        private String customerId;
+        private String invoiceId;
+        private String status;
+        private String storeName;
         private Double orderTotalAmount;
 
     }

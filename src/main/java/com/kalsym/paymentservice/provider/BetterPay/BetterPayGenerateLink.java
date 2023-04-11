@@ -21,6 +21,7 @@ public class BetterPayGenerateLink extends SyncDispatcher {
     private final String systemTransactionId;
     private final String merchantId;
     private final String bnplMerchantId;
+    private final String mobilePaymentLinkUrl;
 
     private final String bnplGeneratelinkApiKey;
     private PaymentRequest order;
@@ -39,6 +40,7 @@ public class BetterPayGenerateLink extends SyncDispatcher {
         this.merchantId = (String) config.get("betterPay_MerchantId");
         this.bnplMerchantId = (String) config.get("bnplMerchantId");
         this.bnplGeneratelinkApiKey = (String) config.get("bnplGenerateLinkApiKey");
+        this.mobilePaymentLinkUrl = (String) config.get("mobilePaymentLinkUrl");
         productMap = (HashMap) config.get("productCodeMapping");
         this.order = order;
         this.providerId = providerId;
@@ -67,23 +69,8 @@ public class BetterPayGenerateLink extends SyncDispatcher {
         MakePaymentResult submitOrderResult = new MakePaymentResult();
         try {
             PaymentOrder orderCreated = new PaymentOrder();
-            if (order.getStoreVerticalCode().equals("FnB")) {
-                String beforeHash = generatelink_ApiKey + "|" + this.merchantId + "|" + systemTransactionId + "|" + order.getPaymentAmount() + "|" + order.getPaymentDescription() + "|MYR";
-                String hashValue = md5(beforeHash);
-                LogUtil.info(logprefix, location, "Hash value", hashValue);
-
-                orderCreated.setCreatedDate(DateTimeUtil.currentTimestamp());
-                submitOrderResult.setOrderCreated(orderCreated);
-                submitOrderResult.setSuccess(true);
-                submitOrderResult.setProviderId(this.providerId);
-                submitOrderResult.setPaymentLink(respString);
-                submitOrderResult.setHash(hashValue);
-                submitOrderResult.setPaymentLink(generatelink_url);
-                submitOrderResult.setClientId(this.merchantId);
-                submitOrderResult.setSysTransactionId(systemTransactionId);
-                submitOrderResult.token = "";
-            } else {
-                if (order.getOnlinePayment()) {
+            if (order.getBrowser().equals("WEBSITE")) {
+                if (order.getStoreVerticalCode().equals("FnB")) {
                     String beforeHash = generatelink_ApiKey + "|" + this.merchantId + "|" + systemTransactionId + "|" + order.getPaymentAmount() + "|" + order.getPaymentDescription() + "|MYR";
                     String hashValue = md5(beforeHash);
                     LogUtil.info(logprefix, location, "Hash value", hashValue);
@@ -92,28 +79,51 @@ public class BetterPayGenerateLink extends SyncDispatcher {
                     submitOrderResult.setOrderCreated(orderCreated);
                     submitOrderResult.setSuccess(true);
                     submitOrderResult.setProviderId(this.providerId);
-                    submitOrderResult.setPaymentLink(respString);
                     submitOrderResult.setHash(hashValue);
                     submitOrderResult.setPaymentLink(generatelink_url);
                     submitOrderResult.setClientId(this.merchantId);
                     submitOrderResult.setSysTransactionId(systemTransactionId);
                     submitOrderResult.token = "";
                 } else {
-                    String beforeHash = generatelink_ApiKey + "|" + this.merchantId + "|" + systemTransactionId + "|" + order.getPaymentAmount() + "|" + order.getPaymentDescription() + "|MYR";
-                    String hashValue = md5(beforeHash);
-                    LogUtil.info(logprefix, location, "Hash value", hashValue);
+                    if (order.getOnlinePayment()) {
+                        String beforeHash = generatelink_ApiKey + "|" + this.merchantId + "|" + systemTransactionId + "|" + order.getPaymentAmount() + "|" + order.getPaymentDescription() + "|MYR";
+                        String hashValue = md5(beforeHash);
+                        LogUtil.info(logprefix, location, "Hash value", hashValue);
 
-                    orderCreated.setCreatedDate(DateTimeUtil.currentTimestamp());
-                    submitOrderResult.setOrderCreated(orderCreated);
-                    submitOrderResult.setSuccess(true);
-                    submitOrderResult.setProviderId(this.providerId);
-                    submitOrderResult.setPaymentLink(respString);
-                    submitOrderResult.setHash(hashValue);
-                    submitOrderResult.setPaymentLink(generatelink_url);
-                    submitOrderResult.setClientId(this.bnplMerchantId);
-                    submitOrderResult.setSysTransactionId(systemTransactionId);
-                    submitOrderResult.token = "";
+                        orderCreated.setCreatedDate(DateTimeUtil.currentTimestamp());
+                        submitOrderResult.setOrderCreated(orderCreated);
+                        submitOrderResult.setSuccess(true);
+                        submitOrderResult.setProviderId(this.providerId);
+                        submitOrderResult.setHash(hashValue);
+                        submitOrderResult.setPaymentLink(generatelink_url);
+                        submitOrderResult.setClientId(this.merchantId);
+                        submitOrderResult.setSysTransactionId(systemTransactionId);
+                        submitOrderResult.token = "";
+                    } else {
+                        String beforeHash = generatelink_ApiKey + "|" + this.merchantId + "|" + systemTransactionId + "|" + order.getPaymentAmount() + "|" + order.getPaymentDescription() + "|MYR";
+                        String hashValue = md5(beforeHash);
+                        LogUtil.info(logprefix, location, "Hash value", hashValue);
+
+                        orderCreated.setCreatedDate(DateTimeUtil.currentTimestamp());
+                        submitOrderResult.setOrderCreated(orderCreated);
+                        submitOrderResult.setSuccess(true);
+                        submitOrderResult.setProviderId(this.providerId);
+                        submitOrderResult.setHash(hashValue);
+                        submitOrderResult.setPaymentLink(generatelink_url);
+                        submitOrderResult.setClientId(this.bnplMerchantId);
+                        submitOrderResult.setSysTransactionId(systemTransactionId);
+                        submitOrderResult.token = "";
+                    }
                 }
+            }else{
+                orderCreated.setCreatedDate(DateTimeUtil.currentTimestamp());
+                submitOrderResult.setOrderCreated(orderCreated);
+                submitOrderResult.setSuccess(true);
+                submitOrderResult.setProviderId(this.providerId);
+                submitOrderResult.setPaymentLink(mobilePaymentLinkUrl);
+                submitOrderResult.setHash("");
+                submitOrderResult.setSysTransactionId(systemTransactionId);
+                submitOrderResult.token = "";
             }
 
 
