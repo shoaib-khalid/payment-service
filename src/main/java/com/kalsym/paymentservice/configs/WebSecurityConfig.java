@@ -62,7 +62,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                         "/payments/payhub2u/callback",
                         "/payments/payment-redirect",
                         "/payments/payment-request",
-                        "/payment/getPaymentDetails/**",
+                        "/payments/getPaymentDetails/**",
                         "/payments/postTransaction",
                         "/payments/PostTransaction",
                         "/payments/queryOrderStatus/**",

@@ -715,39 +715,43 @@ public class PaymentsController {
         PaymentDetails paymentDetails = new PaymentDetails();
 
         PaymentOrder order = paymentOrdersRepository.findBySystemTransactionId(invoiceId);
+        if (order != null) {
 
-        Date current = new Date();
+            Date current = new Date();
 
-        // Parse the string date into a Date object
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-        Date date = dateFormat.parse(order.getCreatedDate());
+            // Parse the string date into a Date object
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+            Date date = dateFormat.parse(order.getCreatedDate());
 
-        // Find the difference between the current date and the string date in minutes
-        long diff = (current.getTime() - date.getTime()) / (1000 * 60);
-        Order storeOrder = orderRepository.getOne(order.getClientTransactionId());
+            // Find the difference between the current date and the string date in minutes
+            long diff = (current.getTime() - date.getTime()) / (1000 * 60);
+            Order storeOrder = orderRepository.getOne(order.getClientTransactionId());
 
-        if (Math.abs(diff) < 3) {
-            // The difference is less than 5 minutes
-            System.out.println("The difference is less than 5 minutes.");
-            paymentDetails.setStoreName(storeOrder.getStore().getName());
-            paymentDetails.setStatus("ACTIVE");
-            paymentDetails.setOrderTotalAmount(order.getPaymentAmount());
-            paymentDetails.setCustomerId(order.getCustomerId());
-            paymentDetails.setInvoiceId(order.getSystemTransactionId());
-            response.setData(paymentDetails);
-            response.setSuccessStatus(HttpStatus.OK);
+            if (Math.abs(diff) < 3) {
+                // The difference is less than 5 minutes
+                System.out.println("The difference is less than 5 minutes.");
+                paymentDetails.setStoreName(storeOrder.getStore().getName());
+                paymentDetails.setStatus("ACTIVE");
+                paymentDetails.setOrderTotalAmount(order.getPaymentAmount());
+                paymentDetails.setCustomerId(order.getCustomerId());
+                paymentDetails.setInvoiceId(order.getSystemTransactionId());
+                response.setData(paymentDetails);
+                response.setSuccessStatus(HttpStatus.OK);
 
+            } else {
+                paymentDetails.setStoreName(storeOrder.getStore().getName());
+                paymentDetails.setStatus("EXPIRED");
+                paymentDetails.setCustomerId(order.getCustomerId());
+                paymentDetails.setInvoiceId(order.getSystemTransactionId());
+                // The difference is 5 minutes or more
+                System.out.println("The difference is 5 minutes or more.");
+
+                response.setData(paymentDetails);
+                response.setSuccessStatus(HttpStatus.FORBIDDEN);
+            }
         } else {
-            paymentDetails.setStoreName(storeOrder.getStore().getName());
-            paymentDetails.setStatus("EXPIRED");
-            paymentDetails.setCustomerId(order.getCustomerId());
-            paymentDetails.setInvoiceId(order.getSystemTransactionId());
-            // The difference is 5 minutes or more
-            System.out.println("The difference is 5 minutes or more.");
-
-            response.setData(paymentDetails);
-            response.setSuccessStatus(HttpStatus.FORBIDDEN);
+            response.setSuccessStatus(HttpStatus.NOT_FOUND);
         }
         return ResponseEntity.status(response.getStatus()).body(response);
 
