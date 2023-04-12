@@ -20,7 +20,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 /**
- *
  * @author Sarosh
  */
 @Configuration
@@ -63,6 +62,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                         "/payments/payhub2u/callback",
                         "/payments/payment-redirect",
                         "/payments/payment-request",
+                        "/payment/getPaymentDetails/**",
                         "/payments/postTransaction",
                         "/payments/PostTransaction",
                         "/payments/queryOrderStatus/**",
@@ -77,7 +77,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .exceptionHandling().authenticationEntryPoint(sessionAuthenticationEntryPoint).and()
                 .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-                .cors().and().csrf().disable();;
+                .cors().and().csrf().disable();
+        ;
 //        httpSecurity.addFilterBefore(sessionRequestFilter, UsernamePasswordAuthenticationFilter.class);
     }
 
