@@ -63,6 +63,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                         "/payments/payment-redirect",
                         "/payments/payment-request",
                         "/payments/getPaymentDetails/**",
+                        "/payments/payment-request",
                         "/payments/postTransaction",
                         "/payments/PostTransaction",
                         "/payments/queryOrderStatus/**",
