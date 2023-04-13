@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  *
@@ -20,5 +21,6 @@ public interface PaymentOrdersRepository extends JpaRepository<PaymentOrder, Str
     public PaymentOrder findBySystemTransactionId(String SystemTransactionId );
     public PaymentOrder findByClientTransactionIdAndStatus(String transactionId, String status );
     public PaymentOrder findBySystemTransactionIdAndStatus(String transactionId, String status );
-    public PaymentOrder findByClientTransactionId(String transactionId);
+//    public PaymentOrder findByClientTransactionId(String transactionId);
+    public Optional<PaymentOrder> findByClientTransactionId(String transactionId);
 }

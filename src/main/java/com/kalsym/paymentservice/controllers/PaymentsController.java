@@ -320,7 +320,7 @@ public class PaymentsController {
 
         String systemTransactionId = StringUtility.CreateRefID("CB");
 //        String IP = request.getRemoteAddr();
-        PaymentOrder order = paymentOrdersRepository.findByClientTransactionId(orderId);
+        PaymentOrder order = paymentOrdersRepository.findByClientTransactionId(orderId).get();
 
         if (!order.getStatus().equals("PAID")) {
 
@@ -364,7 +364,7 @@ public class PaymentsController {
         LogUtil.info(logprefix, location, "Receive returnUrl ", "Name: " + name + " email: " + email + " phone: " + phone + " amount:" + amount + " hash :" + hash + " orderId: " + order_id + " transactionId: " + transaction_id + " msg: " + msg);
         String systemTransactionId = StringUtility.CreateRefID("CB");
         String IP = request.getRemoteAddr();
-        PaymentOrder order = paymentOrdersRepository.findByClientTransactionId(order_id);
+        PaymentOrder order = paymentOrdersRepository.findByClientTransactionId(order_id).get();
 
         if (order.getStatus().equals("PENDING")) {
             if (status_id == 1) {
@@ -503,6 +503,250 @@ public class PaymentsController {
     }
 
     //BetterPay
+    //TO Generate Invoice Id
+
+    @PostMapping(path = {"/request/makePayment"}, name = "payments-request-makepayment")
+    public ResponseEntity<HttpResponse> requestMakePayment(HttpServletRequest request, @Valid @RequestBody RequestPayment paymentRequest) {
+        String logprefix = request.getRequestURI() + " ";
+        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
+        HttpResponse response = new HttpResponse(request.getRequestURI());
+
+//        Customer customer = customersRepository.getOne(paymentRequest.getCustomerId());
+        Optional<PaymentOrder> orderPresent = paymentOrdersRepository.findByClientTransactionId(paymentRequest.getOrderId());
+        if (orderPresent.isPresent()) {
+            response.setSuccessStatus(HttpStatus.OK);
+            response.setData(orderPresent.get());
+            LogUtil.info(orderPresent.get().getSystemTransactionId(), location, "Response with " + HttpStatus.OK, "");
+        } else {
+            LogUtil.info(logprefix, location, "", "");
+            paymentRequest.setPaymentAmount(null);
+            if (paymentRequest.getChannel() == null)
+                paymentRequest.setChannel("DELIVERIN");
+
+            //generate transaction id
+            String systemTransactionId = StringUtility.CreateRefID("PY");
+            if (paymentRequest.getOrderId().startsWith("G")) {
+                OrderGroup res = paymentService.getGroupOrder(paymentRequest.getOrderId());
+
+                paymentRequest.setRegionCountryId(res.getRegionCountryId());
+                paymentRequest.setPaymentAmount(res.getTotal());
+
+            } else {
+                OrderConfirm res = paymentService.getOrderById(paymentRequest.getOrderId());
+                LogUtil.info(systemTransactionId, location, "Order Service Return :   ", res.toString());
+                StoreDetails storeDetails = paymentService.getStore(res.getStoreId());
+
+                paymentRequest.setRegionCountryId(storeDetails.getRegionCountryId());
+                paymentRequest.setStoreVerticalCode(storeDetails.getVerticalCode());
+                paymentRequest.setPaymentAmount(res.getOrderGroupDetails().getTotal());
+                LogUtil.info(systemTransactionId, location, "Payment Amount  ", paymentRequest.getPaymentAmount().toString());
+
+            }
+            //successfully submit order to provider
+            //store result in delivery order
+            PaymentOrder paymentOrder = new PaymentOrder();
+            paymentOrder.setClientTransactionId(paymentRequest.getOrderId());
+            paymentOrder.setSystemTransactionId(systemTransactionId);
+            paymentOrder.setStatus("PENDING");
+            paymentOrder.setPaymentChannel(paymentRequest.getPaymentType());
+            paymentOrder.setCreatedDate(String.valueOf(new Date()));
+            paymentOrder.setSpId(5);
+            paymentOrder.setProductCode("parcel");
+            paymentOrder.setPaymentAmount(paymentRequest.getPaymentAmount());
+
+            LogUtil.info(systemTransactionId, location, "PaymentOrder ", paymentOrder.toString());
+            paymentOrdersRepository.save(paymentOrder);
+            response.setSuccessStatus(HttpStatus.OK);
+            response.setData(paymentOrder);
+            LogUtil.info(systemTransactionId, location, "Response with " + HttpStatus.OK, "");
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+
+    }
+
+    //Get Payment Details
+    @GetMapping(path = {"/getPaymentDetails/{invoiceId}"}, name = "payments-get-details")
+    public ResponseEntity<HttpResponse> getPaymentInvoiceDetails(HttpServletRequest request, @PathVariable(name = "invoiceId") String invoiceId) throws ParseException {
+        String logprefix = request.getRequestURI() + " ";
+        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
+        HttpResponse response = new HttpResponse(request.getRequestURI());
+        PaymentDetails paymentDetails = new PaymentDetails();
+
+        PaymentOrder order = paymentOrdersRepository.findBySystemTransactionId(invoiceId);
+        if (order != null) {
+
+            Date current = new Date();
+
+            // Parse the string date into a Date object
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+            Date date = dateFormat.parse(order.getCreatedDate());
+
+            // Find the difference between the current date and the string date in minutes
+            long diff = (current.getTime() - date.getTime()) / (1000 * 60);
+            Order storeOrder = orderRepository.getOne(order.getClientTransactionId());
+
+            if (Math.abs(diff) < 3) {
+                // The difference is less than 5 minutes
+                System.out.println("The difference is less than 5 minutes.");
+                paymentDetails.setStoreName(storeOrder.getStore().getName());
+                paymentDetails.setStatus("ACTIVE");
+                paymentDetails.setOrderTotalAmount(order.getPaymentAmount());
+                paymentDetails.setCustomerId(order.getCustomerId());
+                paymentDetails.setInvoiceId(order.getSystemTransactionId());
+                response.setData(paymentDetails);
+                response.setSuccessStatus(HttpStatus.OK);
+
+            } else {
+                paymentDetails.setStoreName(storeOrder.getStore().getName());
+                paymentDetails.setStatus("EXPIRED");
+                paymentDetails.setCustomerId(order.getCustomerId());
+                paymentDetails.setInvoiceId(order.getSystemTransactionId());
+                // The difference is 5 minutes or more
+                System.out.println("The difference is 5 minutes or more.");
+
+                response.setData(paymentDetails);
+                response.setSuccessStatus(HttpStatus.FORBIDDEN);
+            }
+        } else {
+            response.setSuccessStatus(HttpStatus.NOT_FOUND);
+        }
+        return ResponseEntity.status(response.getStatus()).body(response);
+
+    }
+
+
+    @PostMapping(path = {"/payment-request"}, name = "payments-make-payment")
+    public ResponseEntity<HttpResponse> betterPaymentReqeust(HttpServletRequest request, @Valid @RequestBody BetterPayRequest betterPayRequest) {
+        String logprefix = request.getRequestURI() + " ";
+        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
+        HttpResponse response = new HttpResponse(request.getRequestURI());
+
+        Customer customer = customersRepository.getOne(betterPayRequest.getCustomerId());
+        PaymentOrder order = paymentOrdersRepository.findBySystemTransactionId(betterPayRequest.getTransactionId());
+
+
+        //generate transaction id
+
+        if (order.getClientTransactionId().startsWith("G")) {
+            OrderGroup res = paymentService.getGroupOrder(order.getClientTransactionId());
+            betterPayRequest.setOrderTotalAmount(res.getTotal());
+
+        } else {
+            OrderConfirm res = paymentService.getOrderById(order.getClientTransactionId());
+            LogUtil.info(order.getSystemTransactionId(), location, "Order Service Return :   ", res.toString());
+            StoreDetails storeDetails = paymentService.getStore(res.getStoreId());
+            LogUtil.info(order.getSystemTransactionId(), location, "Payment Amount  ", res.getTotal().toString());
+        }
+
+
+        String token = "";//https://apipxyuat.apps.net.pk:8443/api/token
+        String requestUrl = "https://www.demo.betterpay.me/merchant/api/v2/lite/direct/receiver";
+        String callBackUrlBe = "https://api.symplified.it/payment-service/v1/payments/callback";
+        String callBackUrlFeSuccess = "https://payment.dev-my.symplified.ai/thankyou/SUCCESS/ONLINEPAYMENT/Payment_was_successful/DELIVERIN";
+        String callBackUrlFeFail = "https://payment.dev-my.symplified.ai/thankyou/SUCCESS/ONLINEPAYMENT/Payment_was_successful/DELIVERIN";
+        String currency = "MYR";
+        String merchantId = "10363";
+        String desc = "TESTING";
+        String bankCode;
+        String respondCode = "1";
+        String skipReceipt = "0";
+        String message = "";
+        if (betterPayRequest.getPaymentType().equals("CREDIT")) {
+            bankCode = "CREDIT";
+        } else {
+            bankCode = betterPayRequest.getPaymentService();
+        }
+
+        RestTemplate restTemplate = new RestTemplate();
+
+        JsonObject object = new JsonObject();
+        object.addProperty("merchant_id", merchantId);
+        object.addProperty("invoice", order.getSystemTransactionId());
+        object.addProperty("amount", betterPayRequest.getOrderTotalAmount().toString());
+        object.addProperty("payment_desc", desc); // will change
+        object.addProperty("currency", currency);
+        object.addProperty("buyer_name", customer.getName());
+        object.addProperty("buyer_email", customer.getEmail());
+        object.addProperty("phone", customer.getPhoneNumber());
+        object.addProperty("callback_url_be", callBackUrlBe);
+        object.addProperty("callback_url_fe_succ", callBackUrlFeSuccess);
+        object.addProperty("callback_url_fe_fail", callBackUrlFeFail);
+        object.addProperty("bank_code", bankCode);
+        object.addProperty("respond", respondCode);
+        object.addProperty("skip_receipt", skipReceipt);
+        if (bankCode.equals("CREDIT")) {
+            object.addProperty("card_number", betterPayRequest.getCreditCardNo());
+            object.addProperty("card_year", betterPayRequest.getCardYear());
+            object.addProperty("card_month", betterPayRequest.getCardMonth());
+            object.addProperty("card_cvv", betterPayRequest.getCardCCV());
+            message = betterPayRequest.getOrderTotalAmount() + bankCode + customer.getEmail() + customer.getName() + callBackUrlBe
+                    + callBackUrlFeFail + callBackUrlFeSuccess + betterPayRequest.getCardCCV() + betterPayRequest.getCardMonth()
+                    + betterPayRequest.getCreditCardNo() + betterPayRequest.getCardYear() + currency + order.getSystemTransactionId() + merchantId
+                    + desc + customer.getPhoneNumber() + respondCode + skipReceipt;
+        }
+        else{
+            message = betterPayRequest.getOrderTotalAmount() + bankCode + customer.getEmail() + customer.getName() + callBackUrlBe
+                    + callBackUrlFeFail + callBackUrlFeSuccess + currency + order.getSystemTransactionId() + merchantId
+                    + desc + customer.getPhoneNumber() + respondCode + skipReceipt;
+        }
+        String hmacHex = "";
+
+        System.err.println(message);
+
+        String secret = "XPePraM9Lsgz";
+        try {
+            Mac hmacSha256 = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getBytes(), "HmacSHA256");
+            hmacSha256.init(secretKeySpec);
+
+            byte[] hmacBytes = hmacSha256.doFinal(message.getBytes());
+
+            // Convert the byte array to a hexadecimal string representation
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hmacBytes) {
+                sb.append(String.format("%02x", b));
+            }
+            hmacHex = sb.toString();
+
+
+            System.out.println("HMAC-SHA256: " + hmacHex);
+        } catch (Exception e) {
+            LogUtil.info(order.getSystemTransactionId(), location, "Better Pay HMAC Exception  ", e.getMessage());
+
+        }
+        object.addProperty("hash", hmacHex);
+        System.err.println(object.toString());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Content-Type", "application/json");
+        HttpEntity<String> data = new HttpEntity<>(object.toString(), headers);
+        System.err.println("url for orderDetails" + requestUrl);
+        try {
+            ResponseEntity<String> responses = restTemplate.exchange(requestUrl, HttpMethod.POST, data, String.class);
+
+            int statusCode = responses.getStatusCode().value();
+            LogUtil.info(logprefix, location, "Responses", responses.getBody());
+            if (statusCode == 200) {
+                LogUtil.info(logprefix, location, "Get Token: " + responses.getBody(), "");
+
+                JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
+                token = jsonResp.get("ACCESS_TOKEN").getAsString();
+
+            } else {
+                LogUtil.info(logprefix, location, "Request failed", responses.getBody());
+                token = "";
+            }
+        } catch (Exception exception) {
+            LogUtil.info(logprefix, location, "Exception : ", exception.getMessage());
+            token = "";
+
+        }
+
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+
     //Callback
     @PostMapping(path = {"/request/callback"}, name = "payment-request-callback")
     public ResponseEntity<HttpResponse> paymentRequestCallback(HttpServletRequest request, @RequestBody Object requestBody) {
@@ -590,233 +834,6 @@ public class PaymentsController {
     }
 
 
-    @PostMapping(path = {"/payment-request"}, name = "payments-make-payment")
-    public ResponseEntity<HttpResponse> betterPaymentReqeust(HttpServletRequest request, @Valid @RequestBody BetterPayRequest betterPayRequest) {
-        String logprefix = request.getRequestURI() + " ";
-        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
-        HttpResponse response = new HttpResponse(request.getRequestURI());
-
-        Customer customer = customersRepository.getOne(betterPayRequest.getCustomerId());
-        PaymentOrder order = paymentOrdersRepository.findBySystemTransactionId(betterPayRequest.getTransactionId());
-
-
-        //generate transaction id
-
-        if (order.getClientTransactionId().startsWith("G")) {
-            OrderGroup res = paymentService.getGroupOrder(order.getClientTransactionId());
-            betterPayRequest.setOrderTotalAmount(res.getTotal());
-
-        } else {
-            OrderConfirm res = paymentService.getOrderById(order.getClientTransactionId());
-            LogUtil.info(order.getSystemTransactionId(), location, "Order Service Return :   ", res.toString());
-            StoreDetails storeDetails = paymentService.getStore(res.getStoreId());
-            LogUtil.info(order.getSystemTransactionId(), location, "Payment Amount  ", res.getTotal().toString());
-        }
-
-
-        String token = "";//https://apipxyuat.apps.net.pk:8443/api/token
-        String requestUrl = "https://www.demo.betterpay.me/merchant/api/v2/lite/direct/receiver";
-        String callBackUrlBe = "https://api.symplified.it/payment-service/v1/payments/callback";
-        String callBackUrlFeSuccess = "https://payment.dev-my.symplified.ai/thankyou/SUCCESS/ONLINEPAYMENT/Payment_was_successful/DELIVERIN";
-        String callBackUrlFeFail = "https://payment.dev-my.symplified.ai/thankyou/SUCCESS/ONLINEPAYMENT/Payment_was_successful/DELIVERIN";
-        String currency = "MYR";
-        String merchantId = "10363";
-        String desc = "TESTING";
-        String bankCode = "CREDIT";
-        String respondCode = "1";
-        String skipReceipt = "0";
-
-        RestTemplate restTemplate = new RestTemplate();
-
-        JsonObject object = new JsonObject();
-        object.addProperty("merchant_id", merchantId);
-        object.addProperty("invoice", order.getSystemTransactionId());
-        object.addProperty("amount", betterPayRequest.getOrderTotalAmount().toString());
-        object.addProperty("payment_desc", desc); // will change
-        object.addProperty("currency", currency);
-        object.addProperty("buyer_name", customer.getName());
-        object.addProperty("buyer_email", customer.getEmail());
-        object.addProperty("phone", customer.getPhoneNumber());
-        object.addProperty("callback_url_be", callBackUrlBe);
-        object.addProperty("callback_url_fe_succ", callBackUrlFeSuccess);
-        object.addProperty("callback_url_fe_fail", callBackUrlFeFail);
-        object.addProperty("bank_code", bankCode);
-        object.addProperty("respond", respondCode);
-        object.addProperty("skip_receipt", skipReceipt);
-        object.addProperty("card_number", betterPayRequest.getCreditCardNo());
-        object.addProperty("card_year", betterPayRequest.getCardYear());
-        object.addProperty("card_month", betterPayRequest.getCardMonth());
-        object.addProperty("card_cvv", betterPayRequest.getCardCCV());
-
-        String hmacHex = "";
-        String message = betterPayRequest.getOrderTotalAmount() + bankCode + customer.getEmail() + customer.getName() + callBackUrlBe
-                + callBackUrlFeFail + callBackUrlFeSuccess + betterPayRequest.getCardCCV() + betterPayRequest.getCardMonth()
-                + betterPayRequest.getCreditCardNo() + betterPayRequest.getCardYear() + currency + order.getSystemTransactionId() + merchantId
-                + desc + customer.getPhoneNumber() + respondCode + skipReceipt;
-        System.err.println(message);
-
-        String secret = "XPePraM9Lsgz";
-        try {
-            Mac hmacSha256 = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getBytes(), "HmacSHA256");
-            hmacSha256.init(secretKeySpec);
-
-            byte[] hmacBytes = hmacSha256.doFinal(message.getBytes());
-
-            // Convert the byte array to a hexadecimal string representation
-            StringBuilder sb = new StringBuilder();
-            for (byte b : hmacBytes) {
-                sb.append(String.format("%02x", b));
-            }
-            hmacHex = sb.toString();
-
-
-            System.out.println("HMAC-SHA256: " + hmacHex);
-        } catch (Exception e) {
-            LogUtil.info(order.getSystemTransactionId(), location, "Better Pay HMAC Exception  ", e.getMessage());
-
-        }
-        object.addProperty("hash", hmacHex);
-        System.err.println(object.toString());
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Content-Type", "application/json");
-        HttpEntity<String> data = new HttpEntity<>(object.toString(), headers);
-        System.err.println("url for orderDetails" + requestUrl);
-        try {
-            ResponseEntity<String> responses = restTemplate.exchange(requestUrl, HttpMethod.POST, data, String.class);
-
-            int statusCode = responses.getStatusCode().value();
-            LogUtil.info(logprefix, location, "Responses", responses.getBody());
-            if (statusCode == 200) {
-                LogUtil.info(logprefix, location, "Get Token: " + responses.getBody(), "");
-
-                JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
-                token = jsonResp.get("ACCESS_TOKEN").getAsString();
-
-            } else {
-                LogUtil.info(logprefix, location, "Request failed", responses.getBody());
-                token = "";
-            }
-        } catch (Exception exception) {
-            LogUtil.info(logprefix, location, "Exception : ", exception.getMessage());
-            token = "";
-
-        }
-
-
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
-
-    @GetMapping(path = {"/getPaymentDetails/{invoiceId}"}, name = "payments-get-details")
-    public ResponseEntity<HttpResponse> betterPaymentReqeust(HttpServletRequest request, @PathVariable(name = "invoiceId") String invoiceId) throws ParseException {
-        String logprefix = request.getRequestURI() + " ";
-        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
-        HttpResponse response = new HttpResponse(request.getRequestURI());
-        PaymentDetails paymentDetails = new PaymentDetails();
-
-        PaymentOrder order = paymentOrdersRepository.findBySystemTransactionId(invoiceId);
-        if (order != null) {
-
-            Date current = new Date();
-
-            // Parse the string date into a Date object
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-            Date date = dateFormat.parse(order.getCreatedDate());
-
-            // Find the difference between the current date and the string date in minutes
-            long diff = (current.getTime() - date.getTime()) / (1000 * 60);
-            Order storeOrder = orderRepository.getOne(order.getClientTransactionId());
-
-            if (Math.abs(diff) < 3) {
-                // The difference is less than 5 minutes
-                System.out.println("The difference is less than 5 minutes.");
-                paymentDetails.setStoreName(storeOrder.getStore().getName());
-                paymentDetails.setStatus("ACTIVE");
-                paymentDetails.setOrderTotalAmount(order.getPaymentAmount());
-                paymentDetails.setCustomerId(order.getCustomerId());
-                paymentDetails.setInvoiceId(order.getSystemTransactionId());
-                response.setData(paymentDetails);
-                response.setSuccessStatus(HttpStatus.OK);
-
-            } else {
-                paymentDetails.setStoreName(storeOrder.getStore().getName());
-                paymentDetails.setStatus("EXPIRED");
-                paymentDetails.setCustomerId(order.getCustomerId());
-                paymentDetails.setInvoiceId(order.getSystemTransactionId());
-                // The difference is 5 minutes or more
-                System.out.println("The difference is 5 minutes or more.");
-
-                response.setData(paymentDetails);
-                response.setSuccessStatus(HttpStatus.FORBIDDEN);
-            }
-        } else {
-            response.setSuccessStatus(HttpStatus.NOT_FOUND);
-        }
-        return ResponseEntity.status(response.getStatus()).body(response);
-
-    }
-
-
-    @PostMapping(path = {"/request/makePayment"}, name = "payments-request-makepayment")
-    public ResponseEntity<HttpResponse> requestMakePayment(HttpServletRequest request, @Valid @RequestBody RequestPayment paymentRequest) {
-        String logprefix = request.getRequestURI() + " ";
-        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
-        HttpResponse response = new HttpResponse(request.getRequestURI());
-
-//        Customer customer = customersRepository.getOne(paymentRequest.getCustomerId());
-
-        LogUtil.info(logprefix, location, "", "");
-        paymentRequest.setPaymentAmount(null);
-        if (paymentRequest.getChannel() == null)
-            paymentRequest.setChannel("DELIVERIN");
-
-        //generate transaction id
-        String systemTransactionId = StringUtility.CreateRefID("PY");
-        if (paymentRequest.getOrderId().startsWith("G")) {
-            OrderGroup res = paymentService.getGroupOrder(paymentRequest.getOrderId());
-
-            paymentRequest.setRegionCountryId(res.getRegionCountryId());
-            paymentRequest.setPaymentAmount(res.getTotal());
-
-        } else {
-            OrderConfirm res = paymentService.getOrderById(paymentRequest.getOrderId());
-            LogUtil.info(systemTransactionId, location, "Order Service Return :   ", res.toString());
-            StoreDetails storeDetails = paymentService.getStore(res.getStoreId());
-
-            paymentRequest.setRegionCountryId(storeDetails.getRegionCountryId());
-            paymentRequest.setStoreVerticalCode(storeDetails.getVerticalCode());
-            paymentRequest.setPaymentAmount(res.getOrderGroupDetails().getTotal());
-            LogUtil.info(systemTransactionId, location, "Payment Amount  ", paymentRequest.getPaymentAmount().toString());
-
-
-        }
-        //successfully submit order to provider
-        //store result in delivery order
-        PaymentOrder paymentOrder = new PaymentOrder();
-        paymentOrder.setClientTransactionId(paymentRequest.getOrderId());
-        paymentOrder.setSystemTransactionId(systemTransactionId);
-        paymentOrder.setStatus("PENDING");
-//        paymentOrder.setProductCode(paymentRequest.getProductCode());
-
-//        MakePaymentResult paymentOrderResult = (MakePaymentResult) processResult.returnObject;
-        PaymentOrder orderCreated =new PaymentOrder();
-        paymentOrder.setCreatedDate(orderCreated.getCreatedDate());
-        paymentOrder.setSpId(4);
-        paymentOrder.setPaymentAmount(paymentRequest.getPaymentAmount());
-
-        LogUtil.info(systemTransactionId, location, "PaymentOrder ", paymentOrder.toString());
-
-        paymentOrdersRepository.save(paymentOrder);
-
-        response.setSuccessStatus(HttpStatus.OK);
-        response.setData(orderCreated);
-        LogUtil.info(systemTransactionId, location, "Response with " + HttpStatus.OK, "");
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-
-    }
-
-
     @Getter
     @Setter
     public static class BetterPayRequest {
@@ -827,6 +844,7 @@ public class PaymentsController {
         private String cardMonth;
         private String cardCCV;
         private String paymentType;
+        private String paymentService;
         private String transactionId;
         private Double orderTotalAmount;
 
@@ -844,6 +862,7 @@ public class PaymentsController {
         private String channel;
         private String paymentDescription;
         private Double paymentAmount;
+        String paymentType;
         String storeVerticalCode;
         String browser;
 
