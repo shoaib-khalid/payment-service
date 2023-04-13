@@ -758,6 +758,65 @@ public class PaymentsController {
     }
 
 
+    @PostMapping(path = {"/request/makePayment"}, name = "payments-request-makepayment")
+    public ResponseEntity<HttpResponse> requestMakePayment(HttpServletRequest request, @Valid @RequestBody RequestPayment paymentRequest) {
+        String logprefix = request.getRequestURI() + " ";
+        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
+        HttpResponse response = new HttpResponse(request.getRequestURI());
+
+//        Customer customer = customersRepository.getOne(paymentRequest.getCustomerId());
+
+        LogUtil.info(logprefix, location, "", "");
+        paymentRequest.setPaymentAmount(null);
+        if (paymentRequest.getChannel() == null)
+            paymentRequest.setChannel("DELIVERIN");
+
+        //generate transaction id
+        String systemTransactionId = StringUtility.CreateRefID("PY");
+        if (paymentRequest.getOrderId().startsWith("G")) {
+            OrderGroup res = paymentService.getGroupOrder(paymentRequest.getOrderId());
+
+            paymentRequest.setRegionCountryId(res.getRegionCountryId());
+            paymentRequest.setPaymentAmount(res.getTotal());
+
+        } else {
+            OrderConfirm res = paymentService.getOrderById(paymentRequest.getOrderId());
+            LogUtil.info(systemTransactionId, location, "Order Service Return :   ", res.toString());
+            StoreDetails storeDetails = paymentService.getStore(res.getStoreId());
+
+            paymentRequest.setRegionCountryId(storeDetails.getRegionCountryId());
+            paymentRequest.setStoreVerticalCode(storeDetails.getVerticalCode());
+            paymentRequest.setPaymentAmount(res.getOrderGroupDetails().getTotal());
+            LogUtil.info(systemTransactionId, location, "Payment Amount  ", paymentRequest.getPaymentAmount().toString());
+
+
+        }
+        //successfully submit order to provider
+        //store result in delivery order
+        PaymentOrder paymentOrder = new PaymentOrder();
+        paymentOrder.setClientTransactionId(paymentRequest.getOrderId());
+        paymentOrder.setSystemTransactionId(systemTransactionId);
+        paymentOrder.setStatus("PENDING");
+//        paymentOrder.setProductCode(paymentRequest.getProductCode());
+
+//        MakePaymentResult paymentOrderResult = (MakePaymentResult) processResult.returnObject;
+        PaymentOrder orderCreated =new PaymentOrder();
+        paymentOrder.setCreatedDate(orderCreated.getCreatedDate());
+        paymentOrder.setSpId(4);
+        paymentOrder.setPaymentAmount(paymentRequest.getPaymentAmount());
+
+        LogUtil.info(systemTransactionId, location, "PaymentOrder ", paymentOrder.toString());
+
+        paymentOrdersRepository.save(paymentOrder);
+
+        response.setSuccessStatus(HttpStatus.OK);
+        response.setData(orderCreated);
+        LogUtil.info(systemTransactionId, location, "Response with " + HttpStatus.OK, "");
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+
+    }
+
+
     @Getter
     @Setter
     public static class BetterPayRequest {
@@ -770,6 +829,23 @@ public class PaymentsController {
         private String paymentType;
         private String transactionId;
         private Double orderTotalAmount;
+
+
+    }
+
+    @Getter
+    @Setter
+    public static class RequestPayment {
+
+        private String orderId;
+        private String storeName;
+        private String storeId;
+        private String regionCountryId;
+        private String channel;
+        private String paymentDescription;
+        private Double paymentAmount;
+        String storeVerticalCode;
+        String browser;
 
     }
 
