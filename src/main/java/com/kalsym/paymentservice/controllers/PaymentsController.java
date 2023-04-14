@@ -578,13 +578,16 @@ public class PaymentsController {
             Date current = new Date();
 
             // Parse the string date into a Date object
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
             Date date = dateFormat.parse(order.getCreatedDate());
 
             // Find the difference between the current date and the string date in minutes
             long diff = (current.getTime() - date.getTime()) / (1000 * 60);
+            System.err.println("ORDER ID  { " + order.getClientTransactionId() + "}");
+
             Order storeOrder = orderRepository.getOne(order.getClientTransactionId());
+            System.err.println("ORDER { " + storeOrder.toString() + "}");
 
             if (Math.abs(diff) < 3) {
                 // The difference is less than 5 minutes
@@ -615,6 +618,25 @@ public class PaymentsController {
 
     }
 
+
+    @PostMapping(path = {"/get/BNPLList"}, name = "payment-get-bnpl-response")
+    public ResponseEntity<HttpResponse> getBNPLList(HttpServletRequest request, @RequestBody Object requestBody) {
+        String logprefix = request.getRequestURI() + " ";
+        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
+        HttpResponse response = new HttpResponse(request.getRequestURI());
+
+        LogUtil.info("BNPL-LIST", location, "Request Callback Body ", requestBody.toString());
+
+
+        try {
+
+
+        } catch (Exception ex) {
+            response.setSuccessStatus(HttpStatus.OK);
+            LogUtil.info("BNPL-LIST", location, "Exception ", ex.getMessage());
+        }
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
 
     @PostMapping(path = {"/payment-request"}, name = "payments-make-payment")
     public ResponseEntity<HttpResponse> betterPaymentReqeust(HttpServletRequest request, @Valid @RequestBody BetterPayRequest betterPayRequest) {
@@ -684,8 +706,7 @@ public class PaymentsController {
                     + callBackUrlFeFail + callBackUrlFeSuccess + betterPayRequest.getCardCCV() + betterPayRequest.getCardMonth()
                     + betterPayRequest.getCreditCardNo() + betterPayRequest.getCardYear() + currency + order.getSystemTransactionId() + merchantId
                     + desc + customer.getPhoneNumber() + respondCode + skipReceipt;
-        }
-        else{
+        } else {
             message = betterPayRequest.getOrderTotalAmount() + bankCode + customer.getEmail() + customer.getName() + callBackUrlBe
                     + callBackUrlFeFail + callBackUrlFeSuccess + currency + order.getSystemTransactionId() + merchantId
                     + desc + customer.getPhoneNumber() + respondCode + skipReceipt;

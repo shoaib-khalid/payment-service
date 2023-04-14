@@ -19,7 +19,7 @@ import java.util.Date;
 @Getter
 @Setter
 @ToString
-@Table(name = "order")
+@Table(name = "symplified.order")
 public class Order implements Serializable {
 
     @Id
