@@ -67,7 +67,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                         "/payments/postTransaction",
                         "/payments/PostTransaction",
                         "/payments/queryOrderStatus/**",
-                        "payments/request/callback",
+                        "/payments/request/callback",
                         "/error",
                         "/v2/api-docs",
                         "/configuration/ui",
