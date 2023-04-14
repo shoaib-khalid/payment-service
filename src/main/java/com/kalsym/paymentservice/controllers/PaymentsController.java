@@ -549,7 +549,7 @@ public class PaymentsController {
             paymentOrder.setSystemTransactionId(systemTransactionId);
             paymentOrder.setStatus("PENDING");
             paymentOrder.setPaymentChannel(paymentRequest.getPaymentType());
-            paymentOrder.setCreatedDate(String.valueOf(new Date()));
+            paymentOrder.setCreatedDate(DateTimeUtil.currentTimestamp());
             paymentOrder.setSpId(5);
             paymentOrder.setProductCode("parcel");
             paymentOrder.setPaymentAmount(paymentRequest.getPaymentAmount());
