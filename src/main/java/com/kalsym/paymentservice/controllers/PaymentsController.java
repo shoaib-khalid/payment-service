@@ -644,7 +644,7 @@ public class PaymentsController {
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
         HttpResponse response = new HttpResponse(request.getRequestURI());
 
-        Customer customer = customersRepository.getOne(betterPayRequest.getCustomerId());
+//        Customer customer = customersRepository.getOne(betterPayRequest.getCustomerId());
         PaymentOrder order = paymentOrdersRepository.findBySystemTransactionId(betterPayRequest.getTransactionId());
 
 
@@ -688,9 +688,9 @@ public class PaymentsController {
         object.addProperty("amount", betterPayRequest.getOrderTotalAmount().toString());
         object.addProperty("payment_desc", desc); // will change
         object.addProperty("currency", currency);
-        object.addProperty("buyer_name", customer.getName());
-        object.addProperty("buyer_email", customer.getEmail());
-        object.addProperty("phone", customer.getPhoneNumber());
+        object.addProperty("buyer_name", betterPayRequest.getCustomerName());
+        object.addProperty("buyer_email", betterPayRequest.getEmail());
+        object.addProperty("phone", betterPayRequest.getPhoneNo());
         object.addProperty("callback_url_be", callBackUrlBe);
         object.addProperty("callback_url_fe_succ", callBackUrlFeSuccess);
         object.addProperty("callback_url_fe_fail", callBackUrlFeFail);
@@ -702,14 +702,14 @@ public class PaymentsController {
             object.addProperty("card_year", betterPayRequest.getCardYear());
             object.addProperty("card_month", betterPayRequest.getCardMonth());
             object.addProperty("card_cvv", betterPayRequest.getCardCCV());
-            message = betterPayRequest.getOrderTotalAmount() + bankCode + customer.getEmail() + customer.getName() + callBackUrlBe
+            message = betterPayRequest.getOrderTotalAmount() + bankCode + betterPayRequest.getEmail() +  betterPayRequest.getCustomerName() + callBackUrlBe
                     + callBackUrlFeFail + callBackUrlFeSuccess + betterPayRequest.getCardCCV() + betterPayRequest.getCardMonth()
                     + betterPayRequest.getCreditCardNo() + betterPayRequest.getCardYear() + currency + order.getSystemTransactionId() + merchantId
-                    + desc + customer.getPhoneNumber() + respondCode + skipReceipt;
+                    + desc + betterPayRequest.getPhoneNo() + respondCode + skipReceipt;
         } else {
-            message = betterPayRequest.getOrderTotalAmount() + bankCode + customer.getEmail() + customer.getName() + callBackUrlBe
+            message = betterPayRequest.getOrderTotalAmount() + bankCode + betterPayRequest.getEmail() + betterPayRequest.getCustomerName() + callBackUrlBe
                     + callBackUrlFeFail + callBackUrlFeSuccess + currency + order.getSystemTransactionId() + merchantId
-                    + desc + customer.getPhoneNumber() + respondCode + skipReceipt;
+                    + desc + betterPayRequest.getPhoneNo() + respondCode + skipReceipt;
         }
         String hmacHex = "";
 
@@ -859,7 +859,10 @@ public class PaymentsController {
     @Setter
     public static class BetterPayRequest {
 
-        private String customerId;
+//        private String customerId;
+        private String customerName;
+        private String phoneNo;
+        private String email;
         private String creditCardNo;
         private String cardYear;
         private String cardMonth;
