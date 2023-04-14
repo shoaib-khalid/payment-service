@@ -668,8 +668,8 @@ public class PaymentsController {
         String token = "";//https://apipxyuat.apps.net.pk:8443/api/token
         String requestUrl = "https://www.demo.betterpay.me/merchant/api/v2/lite/direct/receiver";
         String callBackUrlBe = "https://api.symplified.it/payment-service/v1/payments/callback";
-        String callBackUrlFeSuccess = "https://payment.dev-my.symplified.ai/thankyou/SUCCESS/ONLINEPAYMENT/Payment_was_successful/DELIVERIN";
-        String callBackUrlFeFail = "https://payment.dev-my.symplified.ai/thankyou/SUCCESS/ONLINEPAYMENT/Payment_was_successful/DELIVERIN";
+        String callBackUrlFeSuccess = "https://paymentv2.dev-my.symplified.ai/thankyou/SUCCESS";
+        String callBackUrlFeFail = "https://paymentv2.dev-my.symplified.ai/thankyou/FAILED";
         String currency = "MYR";
         String merchantId = "10363";
         String desc = "TESTING";
