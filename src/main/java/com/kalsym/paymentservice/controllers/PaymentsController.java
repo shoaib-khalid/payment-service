@@ -581,6 +581,8 @@ public class PaymentsController {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
             Date date = dateFormat.parse(order.getCreatedDate());
+            System.err.println("Current Date" + current.toString());
+            System.err.println("Current Date" + date.toString());
 
             // Find the difference between the current date and the string date in minutes
             long diff = (current.getTime() - date.getTime()) / (1000 * 60);
@@ -657,6 +659,7 @@ public class PaymentsController {
         } else {
             OrderConfirm res = paymentService.getOrderById(order.getClientTransactionId());
             LogUtil.info(order.getSystemTransactionId(), location, "Order Service Return :   ", res.toString());
+            betterPayRequest.setOrderTotalAmount(res.getTotal());
             StoreDetails storeDetails = paymentService.getStore(res.getStoreId());
             LogUtil.info(order.getSystemTransactionId(), location, "Payment Amount  ", res.getTotal().toString());
         }
@@ -702,7 +705,7 @@ public class PaymentsController {
             object.addProperty("card_year", betterPayRequest.getCardYear());
             object.addProperty("card_month", betterPayRequest.getCardMonth());
             object.addProperty("card_cvv", betterPayRequest.getCardCCV());
-            message = betterPayRequest.getOrderTotalAmount() + bankCode + betterPayRequest.getEmail() +  betterPayRequest.getCustomerName() + callBackUrlBe
+            message = betterPayRequest.getOrderTotalAmount() + bankCode + betterPayRequest.getEmail() + betterPayRequest.getCustomerName() + callBackUrlBe
                     + callBackUrlFeFail + callBackUrlFeSuccess + betterPayRequest.getCardCCV() + betterPayRequest.getCardMonth()
                     + betterPayRequest.getCreditCardNo() + betterPayRequest.getCardYear() + currency + order.getSystemTransactionId() + merchantId
                     + desc + betterPayRequest.getPhoneNo() + respondCode + skipReceipt;
@@ -716,6 +719,8 @@ public class PaymentsController {
         System.err.println(message);
 
         String secret = "XPePraM9Lsgz";
+        BetterPayResponse betterPayResponse = new BetterPayResponse();
+
         try {
             Mac hmacSha256 = Mac.getInstance("HmacSHA256");
             SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getBytes(), "HmacSHA256");
@@ -741,7 +746,6 @@ public class PaymentsController {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
         HttpEntity<String> data = new HttpEntity<>(object.toString(), headers);
-        System.err.println("url for orderDetails" + requestUrl);
         try {
             ResponseEntity<String> responses = restTemplate.exchange(requestUrl, HttpMethod.POST, data, String.class);
 
@@ -751,20 +755,37 @@ public class PaymentsController {
                 LogUtil.info(logprefix, location, "Get Token: " + responses.getBody(), "");
 
                 JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
-                token = jsonResp.get("ACCESS_TOKEN").getAsString();
+                LogUtil.info(logprefix, location, "Get Response In Json: " + jsonResp.toString(), "");
+
+
+                betterPayResponse.setPaymentUrl(jsonResp.get("payment_url").getAsString());
+                betterPayResponse.setMessage(jsonResp.get("comment").getAsString());
+
+                response.setData(betterPayResponse);
+                response.setSuccessStatus(HttpStatus.OK);
 
             } else {
+
+                JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
+
+                betterPayResponse.setPaymentUrl("");
+                betterPayResponse.setMessage(jsonResp.get("comment").getAsString());
+
+                response.setData(betterPayResponse);
+                response.setSuccessStatus(HttpStatus.BAD_REQUEST);
+
                 LogUtil.info(logprefix, location, "Request failed", responses.getBody());
-                token = "";
             }
         } catch (Exception exception) {
+            betterPayResponse.setPaymentUrl("");
+            betterPayResponse.setMessage("Failed : " + exception.getMessage());
             LogUtil.info(logprefix, location, "Exception : ", exception.getMessage());
-            token = "";
-
+            response.setData(betterPayResponse);
+            response.setSuccessStatus(HttpStatus.BAD_REQUEST);
         }
 
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.status(response.getStatus()).body(response);
     }
 
 
@@ -859,7 +880,7 @@ public class PaymentsController {
     @Setter
     public static class BetterPayRequest {
 
-//        private String customerId;
+        //        private String customerId;
         private String customerName;
         private String phoneNo;
         private String email;
@@ -871,6 +892,18 @@ public class PaymentsController {
         private String paymentService;
         private String transactionId;
         private Double orderTotalAmount;
+
+
+    }
+
+    @Getter
+    @Setter
+    public static class BetterPayResponse {
+
+        //        private String customerId;
+
+        private String paymentUrl;
+        private String message;
 
 
     }
