@@ -24,6 +24,7 @@ import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -791,7 +792,7 @@ public class PaymentsController {
 
     //Callback
     @PostMapping(path = {"/request/callback"}, name = "payment-request-callback")
-    public ResponseEntity<HttpResponse> paymentRequestCallback(HttpServletRequest request, @RequestBody Object requestBody) {
+    public ResponseEntity<HttpResponse> paymentRequestCallback(HttpServletRequest request, @RequestBody MultiValueMap<String, String> requestBody) {
         String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
         HttpResponse response = new HttpResponse(request.getRequestURI());
