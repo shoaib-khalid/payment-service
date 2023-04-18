@@ -3,6 +3,7 @@ package com.kalsym.paymentservice.controllers;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.kalsym.paymentservice.models.HttpResponse;
 import com.kalsym.paymentservice.models.daos.*;
@@ -27,6 +28,7 @@ import org.springframework.http.*;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import springfox.documentation.spring.web.json.Json;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -35,9 +37,7 @@ import javax.validation.Valid;
 import java.net.URI;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Optional;
-import java.util.TimeZone;
+import java.util.*;
 
 
 /**
@@ -622,16 +622,92 @@ public class PaymentsController {
     }
 
 
-    @PostMapping(path = {"/get/BNPLList"}, name = "payment-get-bnpl-response")
-    public ResponseEntity<HttpResponse> getBNPLList(HttpServletRequest request, @RequestBody Object requestBody) {
+    @GetMapping(path = {"/get/BNPLList"}, name = "payment-get-bnpl-response")
+    public ResponseEntity<HttpResponse> getBNPLList(HttpServletRequest request) {
         String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
         HttpResponse response = new HttpResponse(request.getRequestURI());
 
-        LogUtil.info("BNPL-LIST", location, "Request Callback Body ", requestBody.toString());
 
+        RestTemplate restTemplate = new RestTemplate();
+        String requestUrl = "https://www.demo.betterpay.me/merchant/api/v2/lite/channels";
+
+        String merchantId = "10363";
+
+        JsonObject object = new JsonObject();
+        object.addProperty("merchant_id", merchantId);
+
+        String hmacHex = "";
+        String message = merchantId;
+        System.err.println(message);
+
+        String secret = "XPePraM9Lsgz";
 
         try {
+            Mac hmacSha256 = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getBytes(), "HmacSHA256");
+            hmacSha256.init(secretKeySpec);
+
+            byte[] hmacBytes = hmacSha256.doFinal(message.getBytes());
+
+            // Convert the byte array to a hexadecimal string representation
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hmacBytes) {
+                sb.append(String.format("%02x", b));
+            }
+            hmacHex = sb.toString();
+
+
+            System.out.println("HMAC-SHA256: " + hmacHex);
+        } catch (Exception e) {
+            LogUtil.info(merchantId, location, "Better Pay HMAC Exception  ", e.getMessage());
+
+        }
+        object.addProperty("hash", hmacHex);
+        System.err.println("request Body " + object.toString());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Content-Type", "application/json");
+        HttpEntity<String> data = new HttpEntity<>(object.toString(), headers);
+        try {
+            ResponseEntity<String> responses = restTemplate.exchange(requestUrl, HttpMethod.POST, data, String.class);
+
+            int statusCode = responses.getStatusCode().value();
+            LogUtil.info(logprefix, location, "Responses", responses.getBody());
+            if (statusCode == 200) {
+                LogUtil.info(logprefix, location, "Get Token: " + responses.getBody(), "");
+
+                JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
+                LogUtil.info(logprefix, location, "Get Response In Json: " + jsonResp.toString(), "");
+                List<BNPLLIST> bnpllists = new ArrayList<>();
+                for (JsonElement responseData : jsonResp.getAsJsonArray("data")) {
+                    BNPLLIST bnpllist = new BNPLLIST();
+                    LogUtil.info(logprefix, location, "Get Response In Json: " + responseData, "");
+                    JsonObject list = new Gson().fromJson(responseData, JsonObject.class);
+                    if (list.get("type").getAsString().equals("BNPL")) {
+                        bnpllist.setType(list.get("type").getAsString());
+                        bnpllist.setProviderName(list.get("display_name").getAsString());
+                        bnpllist.setProviderValue(list.get("value").getAsString());
+                        bnpllist.setLogoUrl(list.get("logo_url").getAsString());
+                        bnpllists.add(bnpllist);
+                    }
+
+                }
+
+                response.setData(bnpllists);
+                response.setSuccessStatus(HttpStatus.OK);
+
+            } else {
+
+                JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
+
+//                betterPayResponse.setPaymentUrl("");
+//                betterPayResponse.setMessage(jsonResp.get("comment").getAsString());
+//
+//                response.setData(betterPayResponse);
+                response.setSuccessStatus(HttpStatus.BAD_REQUEST);
+
+                LogUtil.info(logprefix, location, "Request failed", responses.getBody());
+            }
 
 
         } catch (Exception ex) {
@@ -815,29 +891,34 @@ public class PaymentsController {
             if (order.getStatus().equals("PENDING")) {
                 if (txnStatus.equals("00")) {
                     if (txnAmount.equals(order.getPaymentAmount())) {
-                        if (order.getClientTransactionId().startsWith("G")) {
-                            OrderConfirm res = paymentService.groupOrderUpdateStatus(order.getClientTransactionId(), "PAYMENT_CONFIRMED", "", callbackResponse.get("msg").getAsString());
-                        } else {
-                            OrderConfirm res = paymentService.updateStatus(order.getClientTransactionId(), "PAYMENT_CONFIRMED", "", callbackResponse.get("msg").getAsString());
-                        }
-                        String spErrorCode = txnStatus;
-                        String statusDescription = callbackResponse.get("msg").getAsString();
-                        String paymentTransactionId = callbackResponse.get("fpx_fpxTxnId").getAsString();
-                        String clientTransactionId;
-                        String status = "PAID";
-                        PaymentOrder deliveryOrder = paymentOrdersRepository.findBySystemTransactionIdAndStatus(paymentReferenceId, "PENDING");
-                        if (deliveryOrder != null) {
-                            clientTransactionId = deliveryOrder.getClientTransactionId();
-                            LogUtil.info(systemTransactionId, location, "DeliveryOrder found. Update status and updated datetime", "");
-                            deliveryOrder.setStatus(status);
-                            deliveryOrder.setPaymentChannel(callbackResponse.get("pay_method").getAsString());
-                            deliveryOrder.setUpdatedDate(DateTimeUtil.currentTimestamp());
-                            deliveryOrder.setSpErrorCode(spErrorCode);
-                            deliveryOrder.setSpOrderId(paymentTransactionId);
-                            deliveryOrder.setStatusDescription(statusDescription);
-                            paymentOrdersRepository.save(deliveryOrder);
-                        } else {
-                            LogUtil.info(systemTransactionId, location, "DeliveryOrder not found for paymentTransactionId:" + paymentTransactionId, "");
+                        try {
+                            if (order.getClientTransactionId().startsWith("G")) {
+                                OrderConfirm res = paymentService.groupOrderUpdateStatus(order.getClientTransactionId(), "PAYMENT_CONFIRMED", "", callbackResponse.get("msg").getAsString());
+                            } else {
+                                OrderConfirm res = paymentService.updateStatus(order.getClientTransactionId(), "PAYMENT_CONFIRMED", "", callbackResponse.get("msg").getAsString());
+                            }
+                            String spErrorCode = txnStatus;
+                            String statusDescription = callbackResponse.get("msg").getAsString();
+                            String paymentTransactionId = callbackResponse.get("fpx_fpxTxnId").getAsString();
+                            String clientTransactionId;
+                            String status = "PAID";
+                            PaymentOrder deliveryOrder = paymentOrdersRepository.findBySystemTransactionIdAndStatus(paymentReferenceId, "PENDING");
+                            if (deliveryOrder != null) {
+                                clientTransactionId = deliveryOrder.getClientTransactionId();
+                                LogUtil.info(systemTransactionId, location, "DeliveryOrder found. Update status and updated datetime", "");
+                                deliveryOrder.setStatus(status);
+                                deliveryOrder.setPaymentChannel(callbackResponse.get("pay_method").getAsString());
+                                deliveryOrder.setUpdatedDate(DateTimeUtil.currentTimestamp());
+                                deliveryOrder.setSpErrorCode(spErrorCode);
+                                deliveryOrder.setSpOrderId(paymentTransactionId);
+                                deliveryOrder.setStatusDescription(statusDescription);
+                                paymentOrdersRepository.save(deliveryOrder);
+                            } else {
+                                LogUtil.info(systemTransactionId, location, "DeliveryOrder not found for paymentTransactionId:" + paymentTransactionId, "");
+                            }
+                        } catch (Exception ex) {
+                            LogUtil.info(systemTransactionId, location, "Error update Db:" + ex.getMessage(), "");
+
                         }
                         response.setSuccessStatus(HttpStatus.OK);
 //                response.setData(processResult.returnObject);
@@ -924,6 +1005,16 @@ public class PaymentsController {
         String storeVerticalCode;
         String browser;
 
+    }
+
+    @Getter
+    @Setter
+    public static class BNPLLIST {
+
+        private String type;
+        private String providerValue;
+        private String providerName;
+        private String logoUrl;
     }
 
     @Getter
