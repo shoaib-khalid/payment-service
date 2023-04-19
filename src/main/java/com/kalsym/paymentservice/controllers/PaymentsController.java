@@ -630,9 +630,11 @@ public class PaymentsController {
 
 
         RestTemplate restTemplate = new RestTemplate();
-        String requestUrl = "https://www.demo.betterpay.me/merchant/api/v2/lite/channels";
+//        String requestUrl = "https://www.demo.betterpay.me/merchant/api/v2/lite/channels";//Staging
+        String requestUrl = "https://lite.betterpay.me/api/merchant/v1/channels";
 
-        String merchantId = "10363";
+//        String merchantId = "10363";Staging
+        String merchantId = "R1184";// production
 
         JsonObject object = new JsonObject();
         object.addProperty("merchant_id", merchantId);
@@ -641,7 +643,8 @@ public class PaymentsController {
         String message = merchantId;
         System.err.println(message);
 
-        String secret = "XPePraM9Lsgz";
+//        String secret = "XPePraM9Lsgz";//Staging
+        String secret = "MWsREUapAZ";//Production
 
         try {
             Mac hmacSha256 = Mac.getInstance("HmacSHA256");
@@ -743,12 +746,14 @@ public class PaymentsController {
 
 
         String token = "";//https://apipxyuat.apps.net.pk:8443/api/token
-        String requestUrl = "https://www.demo.betterpay.me/merchant/api/v2/lite/direct/receiver";
+//        String requestUrl = "https://www.demo.betterpay.me/merchant/api/v2/lite/direct/receiver";//Staging
+        String requestUrl = "https://lite.betterpay.me/api/merchant/v1/direct";
         String callBackUrlBe = "https://api.symplified.it/payment-service/v1/payments/request/callback";
         String callBackUrlFeSuccess = "https://paymentv2.dev-my.symplified.ai/thankyou/SUCCESS";
         String callBackUrlFeFail = "https://paymentv2.dev-my.symplified.ai/thankyou/FAILED";
         String currency = "MYR";
-        String merchantId = "10363";
+//        String merchantId = "10363";//Staging
+        String merchantId = "R1184";//Staging
         String desc = "TESTING";
         String bankCode;
         String respondCode = "1";
@@ -795,7 +800,8 @@ public class PaymentsController {
 
         System.err.println(message);
 
-        String secret = "XPePraM9Lsgz";
+//        String secret = "XPePraM9Lsgz";//Staging
+        String secret = "MWsREUapAZ";//production
         BetterPayResponse betterPayResponse = new BetterPayResponse();
 
         try {
@@ -956,6 +962,8 @@ public class PaymentsController {
         }
         return ResponseEntity.status(response.getStatus()).body(response);
     }
+
+
 
 
     @Getter
