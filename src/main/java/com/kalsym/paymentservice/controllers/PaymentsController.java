@@ -670,6 +670,11 @@ public class PaymentsController {
         System.err.println("request Body " + object.toString());
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
+        if (!requestUrl.contains("demo")) {
+            headers.set("Host", "lite.betterpay.me");
+            headers.set("Content-Length", "111");
+            headers.set("User-Agent", "PostmanRuntime/7.32.2");
+        }
         HttpEntity<String> data = new HttpEntity<>(object.toString(), headers);
         try {
             ResponseEntity<String> responses = restTemplate.exchange(requestUrl, HttpMethod.POST, data, String.class);
@@ -746,29 +751,31 @@ public class PaymentsController {
 
 
         String token = "";//https://apipxyuat.apps.net.pk:8443/api/token
-//        String requestUrl = "https://www.demo.betterpay.me/merchant/api/v2/lite/direct/receiver";//Staging
-        String requestUrl = "https://lite.betterpay.me/api/merchant/v1/direct";
+        String requestUrlStaging = "https://www.demo.betterpay.me/merchant/api/v2/lite/direct/receiver";//Staging
+        String requestUrlProduction = "https://lite.betterpay.me/api/merchant/v1/direct";
         String callBackUrlBe = "https://api.symplified.it/payment-service/v1/payments/request/callback";
         String callBackUrlFeSuccess = "https://paymentv2.dev-my.symplified.ai/thankyou/SUCCESS";
         String callBackUrlFeFail = "https://paymentv2.dev-my.symplified.ai/thankyou/FAILED";
         String currency = "MYR";
-//        String merchantId = "10363";//Staging
-        String merchantId = "R1184";//Staging
+        String merchantIdStaging = "10363";//Staging
+        String merchantIdProduction = "R1184";//Staging
         String desc = "TESTING";
         String bankCode;
         String respondCode = "1";
         String skipReceipt = "0";
         String message = "";
+        JsonObject object = new JsonObject();
+
         if (betterPayRequest.getPaymentType().equals("CREDIT")) {
             bankCode = "CREDIT";
+            object.addProperty("merchant_id", merchantIdProduction);
         } else {
+            object.addProperty("merchant_id", merchantIdStaging);
             bankCode = betterPayRequest.getPaymentService();
         }
 
         RestTemplate restTemplate = new RestTemplate();
 
-        JsonObject object = new JsonObject();
-        object.addProperty("merchant_id", merchantId);
         object.addProperty("invoice", order.getSystemTransactionId());
         object.addProperty("amount", betterPayRequest.getOrderTotalAmount().toString());
         object.addProperty("payment_desc", desc); // will change
@@ -789,24 +796,29 @@ public class PaymentsController {
             object.addProperty("card_cvv", betterPayRequest.getCardCCV());
             message = betterPayRequest.getOrderTotalAmount() + bankCode + betterPayRequest.getEmail() + betterPayRequest.getCustomerName() + callBackUrlBe
                     + callBackUrlFeFail + callBackUrlFeSuccess + betterPayRequest.getCardCCV() + betterPayRequest.getCardMonth()
-                    + betterPayRequest.getCreditCardNo() + betterPayRequest.getCardYear() + currency + order.getSystemTransactionId() + merchantId
+                    + betterPayRequest.getCreditCardNo() + betterPayRequest.getCardYear() + currency + order.getSystemTransactionId() + merchantIdProduction
                     + desc + betterPayRequest.getPhoneNo() + respondCode + skipReceipt;
         } else {
             message = betterPayRequest.getOrderTotalAmount() + bankCode + betterPayRequest.getEmail() + betterPayRequest.getCustomerName() + callBackUrlBe
-                    + callBackUrlFeFail + callBackUrlFeSuccess + currency + order.getSystemTransactionId() + merchantId
+                    + callBackUrlFeFail + callBackUrlFeSuccess + currency + order.getSystemTransactionId() + merchantIdStaging
                     + desc + betterPayRequest.getPhoneNo() + respondCode + skipReceipt;
         }
         String hmacHex = "";
 
         System.err.println(message);
 
-//        String secret = "XPePraM9Lsgz";//Staging
-        String secret = "MWsREUapAZ";//production
+        String secretStaging = "XPePraM9Lsgz";//Staging
+        String secretProduction = "MWsREUapAZ";//production
         BetterPayResponse betterPayResponse = new BetterPayResponse();
 
         try {
             Mac hmacSha256 = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getBytes(), "HmacSHA256");
+            SecretKeySpec secretKeySpec;
+            if (betterPayRequest.getPaymentType().equals("CREDIT")) {
+                secretKeySpec = new SecretKeySpec(secretProduction.getBytes(), "HmacSHA256");
+            } else {
+                secretKeySpec = new SecretKeySpec(secretStaging.getBytes(), "HmacSHA256");
+            }
             hmacSha256.init(secretKeySpec);
 
             byte[] hmacBytes = hmacSha256.doFinal(message.getBytes());
@@ -828,9 +840,19 @@ public class PaymentsController {
         System.err.println(object.toString());
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
+        String url;
+
+        if (betterPayRequest.getPaymentType().equals("CREDIT")) {
+            headers.set("Host", "lite.betterpay.me");
+            headers.set("Content-Length", "111");
+            headers.set("User-Agent", "PostmanRuntime/7.32.2");
+            url = requestUrlProduction;
+        } else {
+            url = requestUrlStaging;
+        }
         HttpEntity<String> data = new HttpEntity<>(object.toString(), headers);
         try {
-            ResponseEntity<String> responses = restTemplate.exchange(requestUrl, HttpMethod.POST, data, String.class);
+            ResponseEntity<String> responses = restTemplate.exchange(url, HttpMethod.POST, data, String.class);
 
             int statusCode = responses.getStatusCode().value();
             LogUtil.info(logprefix, location, "Responses", responses.getBody());
@@ -962,8 +984,6 @@ public class PaymentsController {
         }
         return ResponseEntity.status(response.getStatus()).body(response);
     }
-
-
 
 
     @Getter
