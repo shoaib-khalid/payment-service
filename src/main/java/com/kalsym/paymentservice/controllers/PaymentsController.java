@@ -736,10 +736,12 @@ public class PaymentsController {
 
 
         //generate transaction id
+        Order storeOrder;
 
         if (order.getClientTransactionId().startsWith("G")) {
             OrderGroup res = paymentService.getGroupOrder(order.getClientTransactionId());
             betterPayRequest.setOrderTotalAmount(res.getTotal());
+            storeOrder = orderRepository.findAllByOrderGroupId(order.getClientTransactionId()).get(0);
 
         } else {
             OrderConfirm res = paymentService.getOrderById(order.getClientTransactionId());
@@ -747,6 +749,8 @@ public class PaymentsController {
             betterPayRequest.setOrderTotalAmount(res.getTotal());
             StoreDetails storeDetails = paymentService.getStore(res.getStoreId());
             LogUtil.info(order.getSystemTransactionId(), location, "Payment Amount  ", res.getTotal().toString());
+            storeOrder = orderRepository.findById(order.getClientTransactionId()).get();
+
         }
 
 
@@ -776,7 +780,7 @@ public class PaymentsController {
 
         RestTemplate restTemplate = new RestTemplate();
 
-        object.addProperty("invoice", order.getSystemTransactionId());
+        object.addProperty("invoice", storeOrder.getInvoiceId());
         object.addProperty("amount", betterPayRequest.getOrderTotalAmount().toString());
         object.addProperty("payment_desc", desc); // will change
         object.addProperty("currency", currency);
@@ -796,11 +800,11 @@ public class PaymentsController {
             object.addProperty("card_cvv", betterPayRequest.getCardCCV());
             message = betterPayRequest.getOrderTotalAmount() + bankCode + betterPayRequest.getEmail() + betterPayRequest.getCustomerName() + callBackUrlBe
                     + callBackUrlFeFail + callBackUrlFeSuccess + betterPayRequest.getCardCCV() + betterPayRequest.getCardMonth()
-                    + betterPayRequest.getCreditCardNo() + betterPayRequest.getCardYear() + currency + order.getSystemTransactionId() + merchantIdProduction
+                    + betterPayRequest.getCreditCardNo() + betterPayRequest.getCardYear() + currency + storeOrder.getInvoiceId() + merchantIdProduction
                     + desc + betterPayRequest.getPhoneNo() + respondCode + skipReceipt;
         } else {
             message = betterPayRequest.getOrderTotalAmount() + bankCode + betterPayRequest.getEmail() + betterPayRequest.getCustomerName() + callBackUrlBe
-                    + callBackUrlFeFail + callBackUrlFeSuccess + currency + order.getSystemTransactionId() + merchantIdStaging
+                    + callBackUrlFeFail + callBackUrlFeSuccess + currency + storeOrder.getInvoiceId() + merchantIdStaging
                     + desc + betterPayRequest.getPhoneNo() + respondCode + skipReceipt;
         }
         String hmacHex = "";
@@ -847,12 +851,15 @@ public class PaymentsController {
             headers.set("Content-Length", "111");
             headers.set("User-Agent", "PostmanRuntime/7.32.2");
             url = requestUrlProduction;
+            System.err.println("Print here cret");
         } else {
+            System.err.println("Print here bnpl");
+
             url = requestUrlStaging;
         }
         HttpEntity<String> data = new HttpEntity<>(object.toString(), headers);
         try {
-            ResponseEntity<String> responses = restTemplate.exchange(url, HttpMethod.POST, data, String.class);
+            ResponseEntity<String> responses = restTemplate.exchange(requestUrlProduction, HttpMethod.POST, data, String.class);
 
             int statusCode = responses.getStatusCode().value();
             LogUtil.info(logprefix, location, "Responses", responses.getBody());
@@ -864,7 +871,7 @@ public class PaymentsController {
 
 
                 betterPayResponse.setPaymentUrl(jsonResp.get("payment_url").getAsString());
-                betterPayResponse.setMessage(jsonResp.get("comment").getAsString());
+//                betterPayResponse.setMessage(jsonResp.get("comment").getAsString());
 
                 response.setData(betterPayResponse);
                 response.setSuccessStatus(HttpStatus.OK);
