@@ -798,12 +798,12 @@ public class PaymentsController {
             object.addProperty("card_year", betterPayRequest.getCardYear());
             object.addProperty("card_month", betterPayRequest.getCardMonth());
             object.addProperty("card_cvv", betterPayRequest.getCardCCV());
-            message = betterPayRequest.getOrderTotalAmount() + bankCode + betterPayRequest.getEmail() + betterPayRequest.getCustomerName() + callBackUrlBe
+            message = betterPayRequest.getOrderTotalAmount() + bankCode + betterPayRequest.getEmail() + betterPayRequest.getCustomerName().replaceAll(" ", "") + callBackUrlBe
                     + callBackUrlFeFail + callBackUrlFeSuccess + betterPayRequest.getCardCCV() + betterPayRequest.getCardMonth()
                     + betterPayRequest.getCreditCardNo() + betterPayRequest.getCardYear() + currency + storeOrder.getInvoiceId() + merchantIdProduction
                     + desc + betterPayRequest.getPhoneNo() + respondCode + skipReceipt;
         } else {
-            message = betterPayRequest.getOrderTotalAmount() + bankCode + betterPayRequest.getEmail() + betterPayRequest.getCustomerName() + callBackUrlBe
+            message = betterPayRequest.getOrderTotalAmount() + bankCode + betterPayRequest.getEmail() + betterPayRequest.getCustomerName().replaceAll(" ", "") + callBackUrlBe
                     + callBackUrlFeFail + callBackUrlFeSuccess + currency + storeOrder.getInvoiceId() + merchantIdStaging
                     + desc + betterPayRequest.getPhoneNo() + respondCode + skipReceipt;
         }
