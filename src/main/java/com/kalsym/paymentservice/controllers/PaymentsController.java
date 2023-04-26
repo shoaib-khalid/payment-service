@@ -91,7 +91,7 @@ public class PaymentsController {
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
         HttpResponse response = new HttpResponse(request.getRequestURI());
 
-        Customer customer = customersRepository.getOne(paymentRequest.getCustomerId());
+//        Customer customer = customersRepository.getOne(paymentRequest.getCustomerId());
 
         LogUtil.info(logprefix, location, "", "");
         paymentRequest.setPaymentAmount(null);
@@ -119,8 +119,6 @@ public class PaymentsController {
             LogUtil.info(systemTransactionId, location, "Payment Amount  ", paymentRequest.getPaymentAmount().toString());
         }
         paymentRequest.setOnlinePayment(true);
-        paymentRequest.setEmail(customer.getEmail());
-        paymentRequest.setPhoneNo(customer.getPhoneNumber());
         paymentRequest.setOrderInvoiceNo(generateUniqueString());
 
 //        Optional<Provider> provider = providerRepository.findByRegionCountryIdAndChannel(paymentRequest.getRegionCountryId(), paymentRequest.getChannel());
