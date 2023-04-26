@@ -28,4 +28,5 @@ public class PaymentRequest {
     String storeVerticalCode;
     Boolean onlinePayment;
     String browser;
+    String orderInvoiceNo;
 }

@@ -1,3 +1,7 @@
+ALTER TABLE symplified.payment_orders ADD uniquePaymentId varchar(100) NULL;
+
+
+
 ###############################################################################################
 
 # **Version V.2.4.2| 19-April-2023**

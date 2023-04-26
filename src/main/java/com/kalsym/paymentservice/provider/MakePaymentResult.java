@@ -29,4 +29,5 @@ public class MakePaymentResult {
 
     public String hashDate;
     public String clientId;
+    public String invoiceId;
 }

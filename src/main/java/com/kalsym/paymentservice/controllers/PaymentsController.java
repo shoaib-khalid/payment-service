@@ -106,6 +106,7 @@ public class PaymentsController {
 
             paymentRequest.setRegionCountryId(res.getRegionCountryId());
             paymentRequest.setPaymentAmount(res.getTotal());
+            paymentRequest.setStoreVerticalCode("");
 
         } else {
             OrderConfirm res = paymentService.getOrderById(paymentRequest.getTransactionId());
@@ -116,14 +117,13 @@ public class PaymentsController {
             paymentRequest.setStoreVerticalCode(storeDetails.getVerticalCode());
             paymentRequest.setPaymentAmount(res.getOrderGroupDetails().getTotal());
             LogUtil.info(systemTransactionId, location, "Payment Amount  ", paymentRequest.getPaymentAmount().toString());
-
-
         }
-
+        paymentRequest.setOnlinePayment(true);
         paymentRequest.setEmail(customer.getEmail());
         paymentRequest.setPhoneNo(customer.getPhoneNumber());
+        paymentRequest.setOrderInvoiceNo(generateUniqueString());
 
-        Optional<Provider> provider = providerRepository.findByRegionCountryIdAndChannel(paymentRequest.getRegionCountryId(), paymentRequest.getChannel());
+//        Optional<Provider> provider = providerRepository.findByRegionCountryIdAndChannel(paymentRequest.getRegionCountryId(), paymentRequest.getChannel());
 
 
         LogUtil.info(systemTransactionId, location, "PaymentOrders Id ", paymentRequest.getTransactionId());
@@ -152,7 +152,7 @@ public class PaymentsController {
             paymentOrder.setPaymentAmount(paymentRequest.getPaymentAmount());
 
             LogUtil.info(systemTransactionId, location, "PaymentOrder ", paymentOrder.toString());
-
+            paymentOrder.setUniquePaymentId(paymentRequest.getOrderInvoiceNo());
             paymentOrdersRepository.save(paymentOrder);
 
             response.setSuccessStatus(HttpStatus.OK);
@@ -868,11 +868,12 @@ public class PaymentsController {
 
                 JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
                 LogUtil.info(logprefix, location, "Get Response In Json: " + jsonResp.toString(), "");
-
-
-                betterPayResponse.setPaymentUrl(jsonResp.get("payment_url").getAsString());
-//                betterPayResponse.setMessage(jsonResp.get("comment").getAsString());
-
+                if (jsonResp.get("response").toString().equals("00")) {
+                    betterPayResponse.setPaymentUrl(jsonResp.get("payment_url").getAsString());
+                } else {
+                    betterPayResponse.setPaymentUrl("");
+                    betterPayResponse.setMessage("Cannot Process The Payment. Please Verify With Merchant");
+                }
                 response.setData(betterPayResponse);
                 response.setSuccessStatus(HttpStatus.OK);
 
@@ -993,6 +994,13 @@ public class PaymentsController {
     }
 
 
+    public static String generateUniqueString() {
+        UUID uuid = UUID.randomUUID();
+        String uniqueString = uuid.toString().replaceAll("-", "");
+        return uniqueString.substring(0, 14);
+    }
+
+
     @Getter
     @Setter
     public static class BetterPayRequest {
@@ -1017,12 +1025,8 @@ public class PaymentsController {
     @Setter
     public static class BetterPayResponse {
 
-        //        private String customerId;
-
         private String paymentUrl;
         private String message;
-
-
     }
 
     @Getter

@@ -55,6 +55,8 @@ public class PaymentOrder {
     String phoneNo;
     String email;
     String callbackUrl;
+
+    String uniquePaymentId;
     public String toString() {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         return gson.toJson(this);
