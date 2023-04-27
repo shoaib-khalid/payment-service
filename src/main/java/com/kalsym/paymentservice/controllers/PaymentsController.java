@@ -901,7 +901,7 @@ public class PaymentsController {
 
 
     //Callback
-    @PostMapping(path = {"/request/callback"}, name = "payment-request-callback")
+    @PostMapping(path = {"/request/callback"} , name = "payment-request-callback")
     public ResponseEntity<HttpResponse> paymentRequestCallback(HttpServletRequest request, @RequestBody MultiValueMap<String, String> requestBody) {
         String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
@@ -909,18 +909,21 @@ public class PaymentsController {
 
         String systemTransactionId = StringUtility.CreateRefID("CB");
         LogUtil.info(systemTransactionId, location, "Request Callback Body ", requestBody.toString());
+        LogUtil.info(systemTransactionId, location, "Request Headers Body ", request.getContentType());
 
         String IP = request.getRemoteAddr();
         LogUtil.info(logprefix, location, "Get Provider List  : ", IP);
 
         JsonObject callbackResponse = new Gson().fromJson(requestBody.toString(), JsonObject.class);
+        LogUtil.info(systemTransactionId, location, "Request Callback Body Convert To Json ", callbackResponse.toString());
+
 
         try {
             String paymentReferenceId = callbackResponse.get("invoice_no").getAsString();
             String txnStatus = callbackResponse.get("txn_status").getAsString();
             Double txnAmount = Double.parseDouble(callbackResponse.get("txn_amount").getAsString());
 
-            PaymentOrder order = paymentOrdersRepository.findBySystemTransactionId(paymentReferenceId);
+            PaymentOrder order = paymentOrdersRepository.findByUniquePaymentId(paymentReferenceId);
 
             if (order.getStatus().equals("PENDING")) {
                 if (txnStatus.equals("00")) {
