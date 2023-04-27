@@ -12,6 +12,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 
@@ -71,9 +72,14 @@ public class BetterPayGenerateLink extends SyncDispatcher {
         MakePaymentResult submitOrderResult = new MakePaymentResult();
         try {
             PaymentOrder orderCreated = new PaymentOrder();
+
+
+            DecimalFormat df = new DecimalFormat("#.##");
+            String formattedNumber = df.format(order.getPaymentAmount());
+            double result = Double.parseDouble(formattedNumber);
 //            if (order.getBrowser().equals("WEBSITE")) {
             if (order.getStoreVerticalCode().equals("FnB")) {
-                String beforeHash = order.getPaymentAmount()+order.getEmail()+order.getCustomerName().replaceAll(" ","") + "MYR" + order.getOrderInvoiceNo() + this.merchantId + order.getPaymentDescription()+order.getPhoneNo();
+                String beforeHash = result + order.getEmail() + order.getCustomerName().replaceAll(" ", "") + "MYR" + order.getOrderInvoiceNo() + this.merchantId + order.getPaymentDescription() + order.getPhoneNo();
                 String hashValue = "";
                 LogUtil.info(logprefix, location, "Before hash value", beforeHash);
 
@@ -98,7 +104,8 @@ public class BetterPayGenerateLink extends SyncDispatcher {
                 } catch (Exception e) {
                     LogUtil.info(order.getSystemTransactionId(), location, "Better Pay HMAC Exception  ", e.getMessage());
 
-                }                LogUtil.info(logprefix, location, "Hash value", hashValue);
+                }
+                LogUtil.info(logprefix, location, "Hash value", hashValue);
 
                 orderCreated.setCreatedDate(DateTimeUtil.currentTimestamp());
                 submitOrderResult.setOrderCreated(orderCreated);
@@ -112,7 +119,7 @@ public class BetterPayGenerateLink extends SyncDispatcher {
                 submitOrderResult.token = "";
             } else {
                 if (order.getOnlinePayment()) {
-                    String beforeHash = order.getPaymentAmount()+order.getEmail()+order.getCustomerName().replaceAll(" ","") + "MYR" + order.getOrderInvoiceNo() + this.merchantId + order.getPaymentDescription()+order.getPhoneNo();
+                    String beforeHash = result + order.getEmail() + order.getCustomerName().replaceAll(" ", "") + "MYR" + order.getOrderInvoiceNo() + this.merchantId + order.getPaymentDescription() + order.getPhoneNo();
                     String hashValue = "";
                     LogUtil.info(logprefix, location, "Before hash value", beforeHash);
 
@@ -152,8 +159,8 @@ public class BetterPayGenerateLink extends SyncDispatcher {
 
                     submitOrderResult.token = "";
                 } else {
-                    String beforeHash = order.getPaymentAmount()+order.getEmail()+order.getCustomerName().replaceAll(" ","") + "MYR" + order.getOrderInvoiceNo() + this.merchantId + order.getPaymentDescription()+order.getPhoneNo();
-                    String hashValue ="";
+                    String beforeHash = result + order.getEmail() + order.getCustomerName().replaceAll(" ", "") + "MYR" + order.getOrderInvoiceNo() + this.merchantId + order.getPaymentDescription() + order.getPhoneNo();
+                    String hashValue = "";
                     LogUtil.info(logprefix, location, "Before hash value", beforeHash);
 
                     try {
