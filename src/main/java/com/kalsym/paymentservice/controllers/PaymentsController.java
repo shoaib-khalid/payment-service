@@ -901,7 +901,8 @@ public class PaymentsController {
 
 
     //Callback
-    @PostMapping(path = {"/request/callback"} , name = "payment-request-callback")
+    @PostMapping(path = {"/request/callback"}, consumes = "application/x-www-form-urlencoded" ,name ="payment-request-callback")
+
     public ResponseEntity<HttpResponse> paymentRequestCallback(HttpServletRequest request, @RequestBody MultiValueMap<String, String> requestBody) {
         String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
@@ -936,13 +937,13 @@ public class PaymentsController {
                             }
                             String spErrorCode = txnStatus;
                             String statusDescription = callbackResponse.get("msg").getAsString();
-                            String paymentTransactionId = callbackResponse.get("fpx_fpxTxnId").getAsString();
+                            String paymentTransactionId = callbackResponse.get("bp_lite_trx_id").getAsString();
                             String clientTransactionId;
                             String status = "PAID";
-                            PaymentOrder deliveryOrder = paymentOrdersRepository.findBySystemTransactionIdAndStatus(paymentReferenceId, "PENDING");
+                            PaymentOrder deliveryOrder = paymentOrdersRepository.findByUniquePaymentIdAndStatus(paymentReferenceId, "PENDING");
                             if (deliveryOrder != null) {
                                 clientTransactionId = deliveryOrder.getClientTransactionId();
-                                LogUtil.info(systemTransactionId, location, "DeliveryOrder found. Update status and updated datetime", "");
+                                LogUtil.info(systemTransactionId, location, "PaymentOrder found. Update status and updated datetime", "");
                                 deliveryOrder.setStatus(status);
                                 deliveryOrder.setPaymentChannel(callbackResponse.get("pay_method").getAsString());
                                 deliveryOrder.setUpdatedDate(DateTimeUtil.currentTimestamp());
@@ -951,9 +952,10 @@ public class PaymentsController {
                                 deliveryOrder.setStatusDescription(statusDescription);
                                 paymentOrdersRepository.save(deliveryOrder);
                             } else {
-                                LogUtil.info(systemTransactionId, location, "DeliveryOrder not found for paymentTransactionId:" + paymentTransactionId, "");
+                                LogUtil.info(systemTransactionId, location, "Payment Order not found for paymentTransactionId:" + paymentTransactionId, "");
                             }
                         } catch (Exception ex) {
+                            ex.printStackTrace();
                             LogUtil.info(systemTransactionId, location, "Error update Db:" + ex.getMessage(), "");
 
                         }
