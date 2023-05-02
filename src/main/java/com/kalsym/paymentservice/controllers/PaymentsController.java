@@ -120,6 +120,7 @@ public class PaymentsController {
         }
         paymentRequest.setOnlinePayment(true);
         paymentRequest.setOrderInvoiceNo(generateUniqueString());
+        paymentRequest.setBrowser("WEBSITE");
 
 //        Optional<Provider> provider = providerRepository.findByRegionCountryIdAndChannel(paymentRequest.getRegionCountryId(), paymentRequest.getChannel());
 
