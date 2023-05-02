@@ -30,4 +30,6 @@ public class MakePaymentResult {
     public String hashDate;
     public String clientId;
     public String invoiceId;
+    public String redirectSuccessUrl;
+    public String redirectFailUrl;
 }

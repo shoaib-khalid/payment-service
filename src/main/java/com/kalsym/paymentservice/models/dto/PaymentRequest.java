@@ -29,4 +29,7 @@ public class PaymentRequest {
     Boolean onlinePayment;
     String browser;
     String orderInvoiceNo;
+    String paymentType;
+    String paymentService;
+    CreditCartPaymentOption creditCardPaymentOptions;
 }
