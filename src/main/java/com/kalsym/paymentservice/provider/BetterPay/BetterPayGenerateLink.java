@@ -48,7 +48,6 @@ public class BetterPayGenerateLink extends SyncDispatcher {
 
     private String creditCardRequestUrl;
     private String currency;
-    private String bankCode;
     private String respondCode;
     private String skipReceipt;
     private String host;
@@ -90,7 +89,6 @@ public class BetterPayGenerateLink extends SyncDispatcher {
 
         this.creditCardRequestUrl = (String) config.get("creditCardRequestUrl");
         this.currency = (String) config.get("currency");
-        this.bankCode = (String) config.get("bankCode");
         this.respondCode = (String) config.get("respondCode");
         this.skipReceipt = (String) config.get("skipReceipt");
         this.host = (String) config.get("host");
@@ -272,6 +270,7 @@ public class BetterPayGenerateLink extends SyncDispatcher {
 
                 String message = "";
                 JsonObject object = new JsonObject();
+                String bankCode;
 
                 if (order.getPaymentType().equals("CREDIT")) {
                     bankCode = "CREDIT";
@@ -285,7 +284,7 @@ public class BetterPayGenerateLink extends SyncDispatcher {
 
                 object.addProperty("invoice", order.getOrderInvoiceNo());
                 object.addProperty("amount", result);
-                object.addProperty("payment_desc", order.getPaymentDescription()); // will change
+                object.addProperty("payment_desc", order.getSystemTransactionId()); // will change
                 object.addProperty("currency", currency);
                 object.addProperty("buyer_name", order.getCustomerName());
                 object.addProperty("buyer_email", order.getEmail());
@@ -308,13 +307,13 @@ public class BetterPayGenerateLink extends SyncDispatcher {
                             + order.getCreditCardPaymentOptions().getCardNo()
                             + order.getCreditCardPaymentOptions().getCardYear() + currency
                             + order.getOrderInvoiceNo() + merchantIdProduction
-                            + order.getPaymentDescription() + order.getPhoneNo() + respondCode + skipReceipt;
+                            + order.getSystemTransactionId() + order.getPhoneNo() + respondCode + skipReceipt;
                 } else {
                     message = result + bankCode + order.getEmail()
                             + order.getCustomerName().replaceAll(" ", "") + callbackBeUrl
                             + callbackUrlFail + callbackUrlSuccess + currency + order.getOrderInvoiceNo()
                             + merchantId
-                            + order.getPaymentDescription() + order.getPhoneNo() + respondCode + skipReceipt;
+                            + order.getSystemTransactionId() + order.getPhoneNo() + respondCode + skipReceipt;
                 }
                 String hmacHex = "";
          /*        String secretStaging = "XPePraM9Lsgz";// Staging
@@ -352,7 +351,7 @@ public class BetterPayGenerateLink extends SyncDispatcher {
                 String url;
 
                 if (order.getPaymentType().equals("CREDIT")) {
-                    headers.set("Host", hostProdution);
+//                    headers.set("Host", hostProdution);
                     headers.set("Content-Length", "111");
                     headers.set("User-Agent", "PostmanRuntime/7.32.2");
                     url = creditCardRequestUrlProduction;
@@ -370,7 +369,9 @@ public class BetterPayGenerateLink extends SyncDispatcher {
 
                         JsonObject jsonResp = new Gson().fromJson(responses.getBody(), JsonObject.class);
                         LogUtil.info(logprefix, location, "Get Response In Json: " + jsonResp.toString(), "");
-                        if (jsonResp.get("response").toString().equals("00")) {
+                        String response = jsonResp.get("response").getAsString();
+
+                        if (response.equals("00")) {
 
                             orderCreated.setCreatedDate(DateTimeUtil.currentTimestamp());
                             submitOrderResult.setOrderCreated(orderCreated);
@@ -381,6 +382,7 @@ public class BetterPayGenerateLink extends SyncDispatcher {
                             submitOrderResult.setSysTransactionId(systemTransactionId);
                             submitOrderResult.token = "";
                         } else {
+
                             orderCreated.setCreatedDate(DateTimeUtil.currentTimestamp());
                             submitOrderResult.setOrderCreated(orderCreated);
                             submitOrderResult.setSuccess(false);

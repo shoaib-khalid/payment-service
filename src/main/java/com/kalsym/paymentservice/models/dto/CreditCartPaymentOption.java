@@ -11,5 +11,6 @@ public class CreditCartPaymentOption {
     String cardYear;
     String cardMonth;
     String cardCCV;
+    String bankCode;
 
 }
