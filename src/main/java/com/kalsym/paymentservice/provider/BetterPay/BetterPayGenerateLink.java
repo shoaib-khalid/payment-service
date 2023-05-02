@@ -122,9 +122,10 @@ public class BetterPayGenerateLink extends SyncDispatcher {
         try {
             PaymentOrder orderCreated = new PaymentOrder();
 
-            DecimalFormat df = new DecimalFormat("#.##");
-            String formattedNumber = df.format(order.getPaymentAmount());
-            double result = Double.parseDouble(formattedNumber);
+//            DecimalFormat df = new DecimalFormat("0.00");
+//            String formattedNumber = df.format(order.getPaymentAmount());
+            String result =  String.format("%.2f", order.getPaymentAmount());
+            System.err.println("AMOUNT" + result);
             if (order.getBrowser().equals("WEBSITE")) {
                 callbackUrlSuccess = callbackUrlSuccess + "?channel=DELIVERIN";
                 callbackUrlFail = callbackUrlFail + "?channel=DELIVERIN";
