@@ -130,7 +130,7 @@ public class BetterPayGenerateLink extends SyncDispatcher {
                 if (order.getStoreVerticalCode().equals("FnB")) {
                     String beforeHash = result + order.getEmail() + order.getCustomerName().replaceAll(" ", "")
                             + callbackUrlFail + callbackUrlSuccess + "MYR"
-                            + order.getOrderInvoiceNo() + this.merchantId + order.getPaymentDescription()
+                            + order.getOrderInvoiceNo() + this.merchantId + systemTransactionId
                             + order.getPhoneNo();
                     String hashValue = "";
                     LogUtil.info(logprefix, location, "Before hash value", beforeHash);
@@ -175,7 +175,7 @@ public class BetterPayGenerateLink extends SyncDispatcher {
                         String beforeHash = result + order.getEmail() + order.getCustomerName().replaceAll(" ", "")
                                 + callbackUrlFail + callbackUrlSuccess + "MYR" + order.getOrderInvoiceNo()
                                 + this.merchantId
-                                + order.getPaymentDescription()
+                                + systemTransactionId
                                 + order.getPhoneNo();
                         String hashValue = "";
                         LogUtil.info(logprefix, location, "Before hash value", beforeHash);
@@ -220,7 +220,7 @@ public class BetterPayGenerateLink extends SyncDispatcher {
                     } else {
                         String beforeHash = result + order.getEmail() + order.getCustomerName().replaceAll(" ", "")
                                 + callbackUrlFail + callbackUrlSuccess + "MYR"
-                                + order.getOrderInvoiceNo() + this.merchantId + order.getPaymentDescription()
+                                + order.getOrderInvoiceNo() + this.merchantId + systemTransactionId
                                 + order.getPhoneNo();
                         String hashValue = "";
                         LogUtil.info(logprefix, location, "Before hash value", beforeHash);
