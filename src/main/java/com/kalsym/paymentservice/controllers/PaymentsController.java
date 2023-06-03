@@ -83,6 +83,9 @@ public class PaymentsController {
     @Autowired
     OrderRepository orderRepository;
 
+//    @Autowired
+//    StorePaymentDetailsRepository storePaymentDetailsRepository;
+
     @PostMapping(path = {"/makePayment"}, name = "payments-make-payment")
     public ResponseEntity<HttpResponse> makePayment(HttpServletRequest request,
                                                     @Valid @RequestBody PaymentRequest paymentRequest) {
@@ -834,6 +837,10 @@ public class PaymentsController {
         card.setBankCode(betterPayRequest.getPaymentType());
         paymentRequest.setCreditCardPaymentOptions(card);
 
+//        Optional<StorePaymentDetails> storePaymentDetails = storePaymentDetailsRepository.findById(storeOrder.getStore().getId());
+//        storePaymentDetails.ifPresent(paymentRequest::setStorePaymentDetailsOptional);
+
+
         ProcessRequest process = new ProcessRequest(order.getSystemTransactionId(), paymentRequest,
                 providerRatePlanRepository, providerConfigurationRepository, providerRepository);
         ProcessResult processResult = process.MakePayment();
@@ -863,9 +870,9 @@ public class PaymentsController {
 
     // Callback
     @PostMapping(path = {
-            "/request/callback"}, consumes = "application/x-www-form-urlencoded", name = "payment-request-callback")
+            "/request/callback"}, name = "payment-request-callback")
     public ResponseEntity<HttpResponse> paymentRequestCallback(HttpServletRequest request,
-                                                               @RequestBody MultiValueMap<String, String> requestBody) {
+                                                               @RequestBody Optional<BetterPayCallbackResponse> requestBody) {
         String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
         HttpResponse response = new HttpResponse(request.getRequestURI());
@@ -877,14 +884,14 @@ public class PaymentsController {
         String IP = request.getRemoteAddr();
         LogUtil.info(logprefix, location, "Get Provider List  : ", IP);
 
-        JsonObject callbackResponse = new Gson().fromJson(requestBody.toString(), JsonObject.class);
+        BetterPayCallbackResponse callbackResponse = requestBody.get();
         LogUtil.info(systemTransactionId, location, "Request Callback Body Convert To Json ",
                 callbackResponse.toString());
 
         try {
-            String paymentReferenceId = callbackResponse.get("invoice_no").getAsString();
-            String txnStatus = callbackResponse.get("txn_status").getAsString();
-            Double txnAmount = Double.parseDouble(callbackResponse.get("txn_amount").getAsString());
+            String paymentReferenceId = callbackResponse.getInvoice_no();
+            String txnStatus = callbackResponse.getTxn_status();
+            Double txnAmount = Double.parseDouble(callbackResponse.getTxn_amount());
 
             PaymentOrder order = paymentOrdersRepository.findByUniquePaymentId(paymentReferenceId);
 
@@ -894,14 +901,14 @@ public class PaymentsController {
                         try {
                             if (order.getClientTransactionId().startsWith("G")) {
                                 OrderConfirm res = paymentService.groupOrderUpdateStatus(order.getClientTransactionId(),
-                                        "PAYMENT_CONFIRMED", "", callbackResponse.get("msg").getAsString());
+                                        "PAYMENT_CONFIRMED", "", callbackResponse.getMsg());
                             } else {
                                 OrderConfirm res = paymentService.updateStatus(order.getClientTransactionId(),
-                                        "PAYMENT_CONFIRMED", "", callbackResponse.get("msg").getAsString());
+                                        "PAYMENT_CONFIRMED", "", callbackResponse.getMsg());
                             }
                             String spErrorCode = txnStatus;
-                            String statusDescription = callbackResponse.get("msg").getAsString();
-                            String paymentTransactionId = callbackResponse.get("bp_lite_trx_id").getAsString();
+                            String statusDescription = callbackResponse.getMsg();
+                            String paymentTransactionId = callbackResponse.getBp_lite_trx_id();
                             String clientTransactionId;
                             String status = "PAID";
                             PaymentOrder deliveryOrder = paymentOrdersRepository
@@ -911,7 +918,7 @@ public class PaymentsController {
                                 LogUtil.info(systemTransactionId, location,
                                         "PaymentOrder found. Update status and updated datetime", "");
                                 deliveryOrder.setStatus(status);
-                                deliveryOrder.setPaymentChannel(callbackResponse.get("pay_method").getAsString());
+                                deliveryOrder.setPaymentChannel(callbackResponse.getPay_method());
                                 deliveryOrder.setUpdatedDate(DateTimeUtil.currentTimestamp());
                                 deliveryOrder.setSpErrorCode(spErrorCode);
                                 deliveryOrder.setSpOrderId(paymentTransactionId);
@@ -946,10 +953,10 @@ public class PaymentsController {
                 } else {
                     if (order.getClientTransactionId().startsWith("G")) {
                         OrderConfirm res = paymentService.groupOrderUpdateStatus(order.getClientTransactionId(),
-                                "PAYMENT_FAILED", "", callbackResponse.get("msg").getAsString());
+                                "PAYMENT_FAILED", "", callbackResponse.getMsg());
                     } else {
                         OrderConfirm res = paymentService.updateStatus(order.getClientTransactionId(), "PAYMENT_FAILED",
-                                "", callbackResponse.get("msg").getAsString());
+                                "", callbackResponse.getMsg());
                     }
                 }
                 response.setSuccessStatus(HttpStatus.OK);
@@ -1066,5 +1073,35 @@ public class PaymentsController {
         }
 
     }
+
+
+    @Getter
+    @Setter
+    public static class BetterPayCallbackResponse {
+
+        @JsonProperty("bp_lite_trx_id")
+        String bp_lite_trx_id;
+        @JsonProperty("merchant_id")
+        String merchant_id;
+        @JsonProperty("invoice_no")
+        String invoice_no;
+        @JsonProperty("txn_status")
+        String txn_status;
+        @JsonProperty("msg")
+        String msg;
+        @JsonProperty("txn_amount")
+        String txn_amount;
+        @JsonProperty("pay_method")
+        String pay_method;
+        @JsonProperty("hash")
+        String hash;
+
+        public String toString() {
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            return gson.toJson(this);
+        }
+
+    }
+
 
 }

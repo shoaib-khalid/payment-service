@@ -1,5 +1,25 @@
 ALTER TABLE symplified.payment_orders ADD uniquePaymentId varchar(100) NULL;
 
+CREATE TABLE symplified.store_payment_details (
+id varchar(100) NULL,
+storeId varchar(100) NULL,
+merchantPaymentId varchar(100) NULL,
+merchantApiKey varchar(100) NULL
+)
+ENGINE=InnoDB
+DEFAULT CHARSET=utf8
+COLLATE=utf8_general_ci;
+
+###############################################################################################
+
+# **Version V.2.4.3| 3-June-2023**
+
+###############################################################################################
+
+### Code Changes:
+
+1. Better Change Production Callback Bug Fixed
+
 
 
 ###############################################################################################
