@@ -23,6 +23,8 @@ import com.kalsym.paymentservice.utils.LogUtil;
 import com.kalsym.paymentservice.utils.StringUtility;
 import lombok.Getter;
 import lombok.Setter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -46,6 +48,9 @@ import java.util.*;
 @RestController()
 @RequestMapping("/payments")
 public class PaymentsController {
+
+    private static final Logger logger = LoggerFactory.getLogger(PaymentsController.class);
+
 
     @Autowired
     ProviderRatePlanRepository providerRatePlanRepository;
